@@ -1,41 +1,34 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { generateTrainingAdvice } from "./douban";
 
-// Mock fetch
-global.fetch = vi.fn();
+// Mock invokeLLM
+vi.mock("./_core/llm", () => ({
+  invokeLLM: vi.fn()
+}));
 
-describe("Douban API Integration", () => {
-  const originalEnv = process.env;
+import { invokeLLM } from "./_core/llm";
 
+describe("AI Training Advice Generation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env = { ...originalEnv };
   });
 
   afterEach(() => {
-    process.env = originalEnv;
+    vi.clearAllMocks();
   });
 
   it("should generate training advice for a student", async () => {
-    // Set env vars
-    process.env.DOUBAN_ACCESS_KEY_ID = "test-key-id";
-    process.env.DOUBAN_SECRET_ACCESS_KEY = "test-secret-key";
-
-    // Mock the fetch response
     const mockResponse = {
-      ok: true,
-      json: async () => ({
-        choices: [
-          {
-            message: {
-              content: "根据您的成绩分析，建议加强长跑训练..."
-            }
+      choices: [
+        {
+          message: {
+            content: "根据您的成绩分析，建议加强长跑训练..."
           }
-        ]
-      })
+        }
+      ]
     };
 
-    (global.fetch as any).mockResolvedValueOnce(mockResponse);
+    (invokeLLM as any).mockResolvedValueOnce(mockResponse);
 
     const advice = await generateTrainingAdvice({
       name: "张三",
@@ -47,99 +40,131 @@ describe("Douban API Integration", () => {
     });
 
     expect(advice).toBe("根据您的成绩分析，建议加强长跑训练...");
-    expect(global.fetch).toHaveBeenCalled();
+    expect(invokeLLM).toHaveBeenCalled();
   });
 
-  it("should handle API errors gracefully", async () => {
-    // Set env vars
-    process.env.DOUBAN_ACCESS_KEY_ID = "test-key-id";
-    process.env.DOUBAN_SECRET_ACCESS_KEY = "test-secret-key";
-
-    // Mock a failed response
+  it("should include grade and class in the prompt", async () => {
     const mockResponse = {
-      ok: false,
-      status: 401,
-      text: async () => "Unauthorized"
-    };
-
-    (global.fetch as any).mockResolvedValueOnce(mockResponse);
-
-    await expect(
-      generateTrainingAdvice({
-        name: "李四",
-        gender: "女",
-        total40: 28,
-        longContrib: 10,
-        ballContrib: 6,
-        selectContrib: 12
-      })
-    ).rejects.toThrow("豆包 API 请求失败");
-  });
-
-  it("should throw error when API keys are missing", async () => {
-    // Set env vars to empty
-    process.env.DOUBAN_ACCESS_KEY_ID = "";
-    process.env.DOUBAN_SECRET_ACCESS_KEY = "";
-
-    // Need to reload the module to pick up new env vars
-    // For now, just verify the error is thrown
-    await expect(
-      generateTrainingAdvice({
-        name: "王五",
-        gender: "男",
-        total40: 35,
-        longContrib: 13,
-        ballContrib: 8,
-        selectContrib: 14
-      })
-    ).rejects.toThrow();
-  });
-
-  it("should construct proper request payload", async () => {
-    // Set env vars
-    process.env.DOUBAN_ACCESS_KEY_ID = "test-key-id";
-    process.env.DOUBAN_SECRET_ACCESS_KEY = "test-secret-key";
-
-    const mockResponse = {
-      ok: true,
-      json: async () => ({
-        choices: [
-          {
-            message: {
-              content: "建议内容"
-            }
+      choices: [
+        {
+          message: {
+            content: "建议内容"
           }
-        ]
-      })
+        }
+      ]
     };
 
-    (global.fetch as any).mockResolvedValueOnce(mockResponse);
+    (invokeLLM as any).mockResolvedValueOnce(mockResponse);
 
     await generateTrainingAdvice({
-      name: "赵六",
+      name: "李四",
       gender: "女",
-      total40: 38,
-      longContrib: 14,
-      ballContrib: 8,
-      selectContrib: 16
+      grade: "高一",
+      class: "1班",
+      total40: 28,
+      longContrib: 10,
+      ballContrib: 6,
+      selectContrib: 12
     });
 
-    // Verify fetch was called with correct URL
-    expect(global.fetch).toHaveBeenCalledWith(
-      "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({
-          "Content-Type": "application/json"
-        })
-      })
-    );
+    const callArgs = (invokeLLM as any).mock.calls[0][0];
+    expect(callArgs.messages).toBeDefined();
+    expect(callArgs.messages[1].content).toContain("李四");
+    expect(callArgs.messages[1].content).toContain("高一");
+    expect(callArgs.messages[1].content).toContain("1班");
+  });
 
-    // Verify the request body contains the student info
-    const callArgs = (global.fetch as any).mock.calls[0];
-    const requestBody = JSON.parse(callArgs[1].body);
-    expect(requestBody.model).toBe("doubao-pro-32k");
-    expect(requestBody.messages).toBeDefined();
-    expect(requestBody.messages[0].content).toContain("赵六");
+  it("should handle missing optional fields", async () => {
+    const mockResponse = {
+      choices: [
+        {
+          message: {
+            content: "建议内容"
+          }
+        }
+      ]
+    };
+
+    (invokeLLM as any).mockResolvedValueOnce(mockResponse);
+
+    const advice = await generateTrainingAdvice({
+      name: "王五",
+      gender: "男",
+      total40: 35
+    });
+
+    expect(advice).toBe("建议内容");
+    expect(invokeLLM).toHaveBeenCalled();
+  });
+
+  it("should throw error when LLM returns empty response", async () => {
+    const mockResponse = {
+      choices: []
+    };
+
+    (invokeLLM as any).mockResolvedValueOnce(mockResponse);
+
+    await expect(
+      generateTrainingAdvice({
+        name: "赵六",
+        gender: "女",
+        total40: 38,
+        longContrib: 14,
+        ballContrib: 8,
+        selectContrib: 16
+      })
+    ).rejects.toThrow("LLM 返回空响应");
+  });
+
+  it("should throw error when LLM call fails", async () => {
+    (invokeLLM as any).mockRejectedValueOnce(new Error("LLM 服务不可用"));
+
+    await expect(
+      generateTrainingAdvice({
+        name: "孙七",
+        gender: "男",
+        total40: 25,
+        longContrib: 9,
+        ballContrib: 5,
+        selectContrib: 11
+      })
+    ).rejects.toThrow("LLM 服务不可用");
+  });
+
+  it("should format student info correctly in prompt", async () => {
+    const mockResponse = {
+      choices: [
+        {
+          message: {
+            content: "建议内容"
+          }
+        }
+      ]
+    };
+
+    (invokeLLM as any).mockResolvedValueOnce(mockResponse);
+
+    await generateTrainingAdvice({
+      name: "周八",
+      gender: "女",
+      grade: "高二",
+      class: "2班",
+      total40: 36,
+      longContrib: 13,
+      ballContrib: 8,
+      selectContrib: 15
+    });
+
+    const callArgs = (invokeLLM as any).mock.calls[0][0];
+    const userMessage = callArgs.messages[1].content;
+
+    expect(userMessage).toContain("周八");
+    expect(userMessage).toContain("女");
+    expect(userMessage).toContain("高二");
+    expect(userMessage).toContain("2班");
+    expect(userMessage).toContain("36/40分");
+    expect(userMessage).toContain("13/15分");
+    expect(userMessage).toContain("8/9分");
+    expect(userMessage).toContain("15/16分");
   });
 });

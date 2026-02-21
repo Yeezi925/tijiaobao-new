@@ -14,6 +14,8 @@ import { Streamdown } from "streamdown";
 export default function AIAdvice({ students }: { students: StudentRecord[] }) {
   const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(null);
   const [advice, setAdvice] = useState<string>("");
+  const [filterGrade, setFilterGrade] = useState("");
+  const [filterClass, setFilterClass] = useState("");
 
   const generateAdviceMutation = trpc.ai.generateAdvice.useMutation({
     onSuccess: (data) => {
@@ -50,6 +52,19 @@ export default function AIAdvice({ students }: { students: StudentRecord[] }) {
     });
   };
 
+  // 获取唯一的年段和班级
+  const grades = Array.from(new Set(students.map(s => s.grade).filter(Boolean)));
+  const classes = Array.from(new Set(students.map(s => s.class).filter(Boolean)));
+
+  // 过滤学生
+  let filteredStudents = students;
+  if (filterGrade) {
+    filteredStudents = filteredStudents.filter(s => s.grade === filterGrade);
+  }
+  if (filterClass) {
+    filteredStudents = filteredStudents.filter(s => s.class === filterClass);
+  }
+
   return (
     <div className="space-y-6">
       {students.length === 0 ? (
@@ -60,28 +75,101 @@ export default function AIAdvice({ students }: { students: StudentRecord[] }) {
         </Card>
       ) : (
         <>
-          {/* 学生选择 */}
+          {/* 筛选选项 */}
           <Card className="p-6 bg-white">
-            <h2 className="text-2xl font-semibold mb-4">选择学生</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {students.map((student, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setSelectedStudent(student);
+            <h2 className="text-lg font-semibold mb-4">筛选选项</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">按年段</label>
+                <select
+                  value={filterGrade}
+                  onChange={(e) => {
+                    setFilterGrade(e.target.value);
+                    setSelectedStudent(null);
                     setAdvice("");
                   }}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    selectedStudent?.name === student.name
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  }`}
+                  className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-white"
                 >
-                  <p className="font-semibold">{student.name}</p>
-                  <p className="text-sm text-muted-foreground">{student.class}</p>
-                  <p className="text-lg font-bold text-primary mt-2">{student.total40}/40分</p>
-                </button>
-              ))}
+                  <option value="">-- 全部年段 --</option>
+                  {grades.map((grade) => (
+                    <option key={grade} value={grade}>
+                      {grade}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">按班级</label>
+                <select
+                  value={filterClass}
+                  onChange={(e) => {
+                    setFilterClass(e.target.value);
+                    setSelectedStudent(null);
+                    setAdvice("");
+                  }}
+                  className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-white"
+                >
+                  <option value="">-- 全部班级 --</option>
+                  {classes
+                    .filter(cls => !filterGrade || students.some(s => s.grade === filterGrade && s.class === cls))
+                    .map((cls) => (
+                      <option key={cls} value={cls}>
+                        {cls}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="flex items-end">
+                <Button
+                  onClick={() => {
+                    setFilterGrade("");
+                    setFilterClass("");
+                    setSelectedStudent(null);
+                    setAdvice("");
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  重置筛选
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* 学生选择 */}
+          <Card className="p-6 bg-white">
+            <h2 className="text-2xl font-semibold mb-4">
+              选择学生 ({filteredStudents.length} 人)
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+              {filteredStudents.length === 0 ? (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  没有符合条件的学生
+                </div>
+              ) : (
+                filteredStudents.map((student, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSelectedStudent(student);
+                      setAdvice("");
+                    }}
+                    className={`p-4 rounded-lg border-2 transition-all text-left ${
+                      selectedStudent?.name === student.name
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <p className="font-semibold">{student.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {student.grade} {student.class}
+                    </p>
+                    <p className="text-lg font-bold text-primary mt-2">{student.total40}/40分</p>
+                  </button>
+                ))
+              )}
             </div>
           </Card>
 
@@ -95,16 +183,16 @@ export default function AIAdvice({ students }: { students: StudentRecord[] }) {
                   <p className="text-lg font-semibold">{selectedStudent.name}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-muted-foreground">年段</p>
+                  <p className="text-lg font-semibold">{selectedStudent.grade || "-"}</p>
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground">班级</p>
-                  <p className="text-lg font-semibold">{selectedStudent.class}</p>
+                  <p className="text-lg font-semibold">{selectedStudent.class || "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">性别</p>
                   <p className="text-lg font-semibold">{selectedStudent.gender}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">总分</p>
-                  <p className="text-lg font-bold text-primary">{selectedStudent.total40}/40</p>
                 </div>
               </div>
 
@@ -130,6 +218,12 @@ export default function AIAdvice({ students }: { students: StudentRecord[] }) {
                   </p>
                   <p className="text-xs text-muted-foreground">/ 16分</p>
                 </div>
+              </div>
+
+              {/* 总分 */}
+              <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
+                <p className="text-sm text-muted-foreground mb-1">总分 (40分制)</p>
+                <p className="text-4xl font-bold text-primary">{selectedStudent.total40}</p>
               </div>
 
               {/* 生成按钮 */}
@@ -158,7 +252,7 @@ export default function AIAdvice({ students }: { students: StudentRecord[] }) {
             <Card className="p-6 bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
               <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                 <Sparkles className="w-6 h-6 text-purple-600" />
-                AI 训练建议
+                AI 训练建议 - {selectedStudent?.name}
               </h2>
               <div className="prose prose-sm max-w-none bg-white rounded-lg p-4 border border-border">
                 <Streamdown>{advice}</Streamdown>
