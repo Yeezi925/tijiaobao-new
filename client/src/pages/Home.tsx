@@ -18,6 +18,7 @@ import { StudentRecord } from "@/lib/scoring";
 import { parseExcelFile, exportToExcel } from "@/lib/excel";
 import { performAnalysis, getUniqueGrades, getUniqueClasses } from "@/lib/analysis";
 import { toast } from "sonner";
+import AIAdvice from "./AIAdvice";
 
 const STORAGE_KEY = "tijiaobao_scores";
 
@@ -146,7 +147,7 @@ export default function Home() {
       {/* 主内容区 */}
       <main className="container py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="query" className="flex items-center gap-2">
               <Upload className="w-4 h-4" />
               <span className="hidden sm:inline">导入/查询</span>
@@ -396,12 +397,7 @@ export default function Home() {
 
           {/* AI 建议标签页 */}
           <TabsContent value="ai" className="space-y-4">
-            <Card className="p-8 bg-white text-center">
-              <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <h2 className="text-xl font-semibold mb-2">AI 训练建议</h2>
-              <p className="text-muted-foreground mb-4">此功能需要配置 AI API 密钥</p>
-              <p className="text-sm text-muted-foreground">敬请期待完整版本</p>
-            </Card>
+            <AIAdvice students={students} />
           </TabsContent>
         </Tabs>
       </main>
