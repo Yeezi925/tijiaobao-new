@@ -3,6 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { generateTrainingAdvice } from "./douban";
+import { lessonPlanRouter } from "./lessonPlan";
 import { z } from "zod";
 
 export const appRouter = router({
@@ -47,6 +48,8 @@ export const appRouter = router({
         }
       }),
   }),
+
+  lessonPlan: lessonPlanRouter,
 });
 
 export type AppRouter = typeof appRouter;

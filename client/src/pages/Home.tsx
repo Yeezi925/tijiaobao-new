@@ -19,6 +19,8 @@ import { parseExcelFile, exportToExcel } from "@/lib/excel";
 import { performAnalysis, getUniqueGrades, getUniqueClasses } from "@/lib/analysis";
 import { toast } from "sonner";
 import AIAdvice from "./AIAdvice";
+import LessonPlanGenerator from "./LessonPlanGenerator";
+import { BookOpen } from "lucide-react";
 
 const STORAGE_KEY = "tijiaobao_scores";
 
@@ -147,7 +149,7 @@ export default function Home() {
       {/* 主内容区 */}
       <main className="container py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="query" className="flex items-center gap-2">
               <Upload className="w-4 h-4" />
               <span className="hidden sm:inline">导入/查询</span>
@@ -159,6 +161,10 @@ export default function Home() {
             <TabsTrigger value="ai" className="flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
               <span className="hidden sm:inline">AI</span>
+            </TabsTrigger>
+            <TabsTrigger value="lesson" className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              <span className="hidden sm:inline">教案</span>
             </TabsTrigger>
           </TabsList>
 
@@ -398,6 +404,11 @@ export default function Home() {
           {/* AI 建议标签页 */}
           <TabsContent value="ai" className="space-y-4">
             <AIAdvice students={students} />
+          </TabsContent>
+
+          {/* 教案生成标签页 */}
+          <TabsContent value="lesson" className="space-y-4">
+            <LessonPlanGenerator />
           </TabsContent>
         </Tabs>
       </main>

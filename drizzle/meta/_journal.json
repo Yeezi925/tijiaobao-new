@@ -8,6 +8,13 @@
       "when": 1771651557058,
       "tag": "0000_redundant_zodiak",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1771653861232,
+      "tag": "0001_moaning_electro",
+      "breakpoints": true
     }
   ]
 }
