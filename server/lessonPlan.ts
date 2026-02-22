@@ -244,11 +244,41 @@ ${conversationSummary}
         throw new Error("生成教案失败");
       }
 
+      // 尝试从内容中提取 JSON
       let planData;
       try {
+        // 首先尝试直接解析
         planData = JSON.parse(content);
       } catch {
-        throw new Error("解析生成的教案失败");
+        // 如果直接解析失败，尝试提取 JSON 部分
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            planData = JSON.parse(jsonMatch[0]);
+          } catch {
+            // 如果仍然失败，构建默认教案
+            planData = {
+              title: "教案",
+              teachingObjectives: content.substring(0, 200),
+              keyPoints: "待补充",
+              teachingProcess: content,
+              summary: "待补充",
+              reflection: "待补充",
+              homework: "待补充"
+            };
+          }
+        } else {
+          // 如果找不到 JSON，构建默认教案
+          planData = {
+            title: "教案",
+            teachingObjectives: content.substring(0, 200),
+            keyPoints: "待补充",
+            teachingProcess: content,
+            summary: "待补充",
+            reflection: "待补充",
+            homework: "待补充"
+          };
+        }
       }
 
       // 保存生成的教案
