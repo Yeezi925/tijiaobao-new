@@ -103,3 +103,53 @@ export const generatedLessonPlans = mysqlTable("generated_lesson_plans", {
 
 export type GeneratedLessonPlan = typeof generatedLessonPlans.$inferSelect;
 export type InsertGeneratedLessonPlan = typeof generatedLessonPlans.$inferInsert;
+
+// 学生成绩历史记录表
+export const studentScoreHistory = mysqlTable("student_score_history", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // 上传者用户ID
+  studentName: varchar("studentName", { length: 100 }).notNull(), // 学生姓名
+  grade: varchar("grade", { length: 50 }).notNull(), // 年级
+  class: varchar("class", { length: 100 }).notNull(), // 班级
+  totalScore: int("totalScore"), // 总分(40分制)
+  longRunScore: int("longRunScore"), // 长跑成绩
+  swimmingScore: int("swimmingScore"), // 游泳成绩
+  ballScore: int("ballScore"), // 球类成绩
+  ballType: varchar("ballType", { length: 100 }), // 球类项目
+  elective1: varchar("elective1", { length: 100 }), // 选考项目1
+  elective1Score: int("elective1Score"), // 选考项目1成绩
+  elective2: varchar("elective2", { length: 100 }), // 选考项目2
+  elective2Score: int("elective2Score"), // 选考项目2成绩
+  gender: varchar("gender", { length: 10 }), // 性别
+  recordDate: timestamp("recordDate").defaultNow().notNull(), // 记录日期
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type StudentScoreHistory = typeof studentScoreHistory.$inferSelect;
+export type InsertStudentScoreHistory = typeof studentScoreHistory.$inferInsert;
+
+// 学生AI对话会话表
+export const studentAIChatSessions = mysqlTable("student_ai_chat_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // 用户ID
+  studentName: varchar("studentName", { length: 100 }).notNull(), // 学生姓名
+  grade: varchar("grade", { length: 50 }).notNull(), // 年级
+  class: varchar("class", { length: 100 }).notNull(), // 班级
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type StudentAIChatSession = typeof studentAIChatSessions.$inferSelect;
+export type InsertStudentAIChatSession = typeof studentAIChatSessions.$inferInsert;
+
+// 学生AI对话消息表
+export const studentAIChatMessages = mysqlTable("student_ai_chat_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId").notNull(), // 会话ID
+  role: mysqlEnum("role", ["user", "assistant"]).notNull(), // 消息角色
+  content: text("content").notNull(), // 消息内容
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type StudentAIChatMessage = typeof studentAIChatMessages.$inferSelect;
+export type InsertStudentAIChatMessage = typeof studentAIChatMessages.$inferInsert;

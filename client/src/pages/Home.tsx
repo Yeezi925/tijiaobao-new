@@ -303,6 +303,7 @@ export default function Home() {
                           <th className="px-4 py-3 text-center font-semibold">球类项目</th>
                           <th className="px-4 py-3 text-center font-semibold">选考项目1</th>
                           <th className="px-4 py-3 text-center font-semibold">选考项目2</th>
+                          <th className="px-4 py-3 text-center font-semibold">操作</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -336,6 +337,20 @@ export default function Home() {
                             <td className="px-4 py-3 text-center text-sm">
                               <div className="font-medium">{student.selectedProjects?.[1]?.contrib || "-"}</div>
                               <div className="text-xs text-muted-foreground">{student.selectedProjects?.[1]?.name || "-"}</div>
+                            </td>
+                            <td className="px-4 py-3 text-center text-sm">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={() => {
+                                  // 这里可以添加生成 AI 建议的逻辑
+                                  toast.info(`正在为 ${student.name} 生成 AI 建议...`);
+                                }}
+                              >
+                                <Sparkles className="w-4 h-4" />
+                                建议
+                              </Button>
                             </td>
                           </tr>
                         ))}
