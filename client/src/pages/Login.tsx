@@ -3,13 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useLocation } from "wouter";
 
 type UserType = "teacher" | "student" | "parent";
 type LoginStep = "selectRole" | "inputInfo";
 
 export default function Login() {
-  const [, setLocation] = useLocation();
   const [step, setStep] = useState<LoginStep>("selectRole");
   const [userType, setUserType] = useState<UserType | null>(null);
   const [name, setName] = useState("");
@@ -54,8 +52,6 @@ export default function Login() {
         // 根据身份跳转到不同的页面
         if (userType === "teacher") {
           window.location.href = "/teacher";
-        } else if (userType === "student") {
-          window.location.href = "/student";
         } else {
           window.location.href = "/student";
         }
