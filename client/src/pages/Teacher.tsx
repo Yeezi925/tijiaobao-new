@@ -21,7 +21,7 @@ export default function Teacher() {
   const [filteredStudents, setFilteredStudents] = useState<StudentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("import");
-  const [isReady, setIsReady] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   // 查询过滤器
   const [queryType, setQueryType] = useState<"all" | "grade" | "class" | "name">("all");
@@ -49,8 +49,11 @@ export default function Teacher() {
         window.location.href = "/";
         return;
       }
+      setIsAuthorized(true);
     } catch (error) {
       console.error("解析用户信息失败:", error);
+      window.location.href = "/login";
+      return;
     }
 
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -63,13 +66,28 @@ export default function Teacher() {
         console.error("加载数据失败:", error);
       }
     }
-    
-    setIsReady(true);
   }, []);
 
-  if (!isReady) {
-    return null;
-  }
+  // 处理查询过滤
+  useEffect(() => {
+    let filtered = students;
+
+    if (queryType === "grade" && selectedGrade) {
+      filtered = filtered.filter((s) => s.grade === selectedGrade);
+    } else if (queryType === "class" && selectedClass) {
+      filtered = filtered.filter((s) => s.class === selectedClass);
+    } else if (queryType === "name" && searchName) {
+      filtered = filtered.filter((s) =>
+        s.name.toLowerCase().includes(searchName.toLowerCase())
+      );
+    }
+
+    setFilteredStudents(filtered);
+  }, [queryType, selectedGrade, selectedClass, searchName, students]);
+
+  // 获取唯一的年段和班级
+  const grades = getUniqueGrades(students);
+  const classes = getUniqueClasses(students);
 
   // 保存到本地存储
   const saveToStorage = (data: StudentRecord[]) => {
@@ -95,27 +113,6 @@ export default function Teacher() {
     }
   };
 
-  // 处理查询过滤
-  useEffect(() => {
-    let filtered = students;
-
-    if (queryType === "grade" && selectedGrade) {
-      filtered = filtered.filter((s) => s.grade === selectedGrade);
-    } else if (queryType === "class" && selectedClass) {
-      filtered = filtered.filter((s) => s.class === selectedClass);
-    } else if (queryType === "name" && searchName) {
-      filtered = filtered.filter((s) =>
-        s.name.toLowerCase().includes(searchName.toLowerCase())
-      );
-    }
-
-    setFilteredStudents(filtered);
-  }, [queryType, selectedGrade, selectedClass, searchName, students]);
-
-  // 获取唯一的年段和班级
-  const grades = getUniqueGrades(students);
-  const classes = getUniqueClasses(students);
-
   // 处理删除学生
   const handleDeleteStudent = (index: number) => {
     const updated = students.filter((_, i) => i !== index);
@@ -134,11 +131,15 @@ export default function Teacher() {
     }
   };
 
-  // 处理导出
-  const handleExport = async () => {
+  // 处理导出 Excel
+  const handleExportExcel = () => {
+    if (students.length === 0) {
+      toast.error("没有数据可导出");
+      return;
+    }
     try {
-      await exportToExcel(students);
-      toast.success("数据已导出");
+      exportToExcel(students);
+      toast.success("Excel 文件已下载");
     } catch (error) {
       toast.error(`导出失败: ${error instanceof Error ? error.message : "未知错误"}`);
     }
@@ -149,6 +150,11 @@ export default function Teacher() {
     localStorage.removeItem("userInfo");
     window.location.href = "/login";
   };
+
+  // 如果未授权，返回空
+  if (!isAuthorized) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
@@ -267,17 +273,6 @@ export default function Teacher() {
                       />
                     </div>
                   )}
-
-                  <div className="flex items-end gap-2">
-                    <Button onClick={handleExport} variant="outline" className="flex-1">
-                      <Download size={16} className="mr-2" />
-                      导出
-                    </Button>
-                    <Button onClick={handleClearAll} variant="destructive" className="flex-1">
-                      <Trash2 size={16} className="mr-2" />
-                      清空
-                    </Button>
-                  </div>
                 </div>
 
                 {/* 学生列表 */}
@@ -288,7 +283,7 @@ export default function Teacher() {
                         <th className="px-4 py-2 text-left">姓名</th>
                         <th className="px-4 py-2 text-left">班级</th>
                         <th className="px-4 py-2 text-left">性别</th>
-                        <th className="px-4 py-2 text-center">各项成绩</th>
+                        <th className="px-4 py-2 text-center">成绩</th>
                         <th className="px-4 py-2 text-center">操作</th>
                       </tr>
                     </thead>
@@ -298,11 +293,13 @@ export default function Teacher() {
                           <td className="px-4 py-2">{student.name}</td>
                           <td className="px-4 py-2">{student.class}</td>
                           <td className="px-4 py-2">{student.gender}</td>
-                          <td className="px-4 py-2 text-center text-xs">-</td>
+                          <td className="px-4 py-2 text-center font-bold text-green-600">
+                            {student.total40 || "--"}
+                          </td>
                           <td className="px-4 py-2 text-center">
                             <Button
                               size="sm"
-                              variant="destructive"
+                              variant="ghost"
                               onClick={() => handleDeleteStudent(index)}
                             >
                               删除
@@ -315,178 +312,130 @@ export default function Teacher() {
                 </div>
               </Card>
             ) : (
-              <Card className="p-8 text-center text-muted-foreground">
-                请先导入学生成绩数据
+              <Card className="p-6 text-center text-muted-foreground">
+                <p>暂无数据，请先导入 Excel 文件</p>
               </Card>
             )}
           </TabsContent>
 
           {/* 分析标签页 */}
-          <TabsContent value="analysis">
+          <TabsContent value="analysis" className="space-y-4">
             {students.length > 0 ? (
-              <AnalysisPanel
-                students={students}
-                analysisLevel={analysisLevel}
-                setAnalysisLevel={setAnalysisLevel}
-                analysisGrade={analysisGrade}
-                setAnalysisGrade={setAnalysisGrade}
-                analysisClass={analysisClass}
-                setAnalysisClass={setAnalysisClass}
-                showGenderCompare={showGenderCompare}
-                setShowGenderCompare={setShowGenderCompare}
-                grades={grades}
-                classes={classes}
-              />
+              <Card className="p-6">
+                <h2 className="text-xl font-bold mb-4">数据分析</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">分析级别</label>
+                    <select
+                      value={analysisLevel}
+                      onChange={(e) => setAnalysisLevel(e.target.value as any)}
+                      className="w-full mt-2 px-3 py-2 border border-border rounded-lg bg-white"
+                    >
+                      <option value="school">学校整体</option>
+                      <option value="year">按年段</option>
+                      <option value="class">按班级</option>
+                    </select>
+                  </div>
+
+                  {analysisLevel === "year" && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">选择年段</label>
+                      <select
+                        value={analysisGrade}
+                        onChange={(e) => setAnalysisGrade(e.target.value)}
+                        className="w-full mt-2 px-3 py-2 border border-border rounded-lg bg-white"
+                      >
+                        <option value="">-- 选择年段 --</option>
+                        {grades.map((g) => (
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {analysisLevel === "class" && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">选择班级</label>
+                      <select
+                        value={analysisClass}
+                        onChange={(e) => setAnalysisClass(e.target.value)}
+                        className="w-full mt-2 px-3 py-2 border border-border rounded-lg bg-white"
+                      >
+                        <option value="">-- 选择班级 --</option>
+                        {classes.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="p-4 bg-blue-50">
+                    <p className="text-sm text-muted-foreground">学生总数</p>
+                    <p className="text-2xl font-bold text-blue-600">{students.length}</p>
+                  </Card>
+                  <Card className="p-4 bg-green-50">
+                    <p className="text-sm text-muted-foreground">平均成绩</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {students.length > 0 ? (students.reduce((sum, s) => sum + (parseFloat(s.total40 || "0") || 0), 0) / students.length).toFixed(1) : "0"}
+                    </p>
+                  </Card>
+                  <Card className="p-4 bg-purple-50">
+                    <p className="text-sm text-muted-foreground">最高成绩</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {students.length > 0 ? Math.max(...students.map(s => parseFloat(s.total40 || "0") || 0)).toFixed(1) : "0"}
+                    </p>
+                  </Card>
+                  <Card className="p-4 bg-orange-50">
+                    <p className="text-sm text-muted-foreground">最低成绩</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {students.length > 0 ? Math.min(...students.map(s => parseFloat(s.total40 || "0") || 0)).toFixed(1) : "0"}
+                    </p>
+                  </Card>
+                </div>
+              </Card>
             ) : (
-              <Card className="p-8 text-center text-muted-foreground">
-                请先导入学生成绩数据
+              <Card className="p-6 text-center text-muted-foreground">
+                <p>暂无数据，请先导入 Excel 文件</p>
               </Card>
             )}
           </TabsContent>
 
-          {/* AI 建议标签页 */}
-          <TabsContent value="ai">
-            <Card className="p-8 text-center text-muted-foreground">
-              AI 建议功能开发中...
+          {/* AI建议标签页 */}
+          <TabsContent value="ai" className="space-y-4">
+            <Card className="p-6">
+              <h2 className="text-xl font-bold mb-4">AI 训练建议</h2>
+              <p className="text-muted-foreground">AI 建议功能开发中...</p>
             </Card>
           </TabsContent>
 
           {/* 教案标签页 */}
-          <TabsContent value="lesson">
-            <Card className="p-8 text-center text-muted-foreground">
-              教案生成功能开发中...
+          <TabsContent value="lesson" className="space-y-4">
+            <Card className="p-6">
+              <h2 className="text-xl font-bold mb-4">教案生成</h2>
+              <p className="text-muted-foreground">教案生成功能开发中...</p>
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
-  );
-}
 
-/**
- * 分析面板组件
- */
-function AnalysisPanel({
-  students,
-  analysisLevel,
-  setAnalysisLevel,
-  analysisGrade,
-  setAnalysisGrade,
-  analysisClass,
-  setAnalysisClass,
-  showGenderCompare,
-  setShowGenderCompare,
-  grades,
-  classes
-}: {
-  students: any[];
-  analysisLevel: "school" | "year" | "class";
-  setAnalysisLevel: (level: "school" | "year" | "class") => void;
-  analysisGrade: string;
-  setAnalysisGrade: (grade: string) => void;
-  analysisClass: string;
-  setAnalysisClass: (cls: string) => void;
-  showGenderCompare: boolean;
-  setShowGenderCompare: (show: boolean) => void;
-  grades: string[];
-  classes: string[];
-}) {
-  const analysis = performAnalysis(
-    students,
-    analysisLevel,
-    analysisLevel === "year" ? analysisGrade : analysisLevel === "class" ? analysisClass : undefined,
-    showGenderCompare
-  );
-
-  const stats = analysis.stats;
-  if (!stats) {
-    return null;
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* 分析级别选择 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-secondary/30 rounded-lg">
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">分析级别</label>
-          <select
-            value={analysisLevel}
-            onChange={(e) => setAnalysisLevel(e.target.value as any)}
-            className="w-full mt-2 px-3 py-2 border border-border rounded-lg bg-white"
-          >
-            <option value="school">全校</option>
-            <option value="year">按年段</option>
-            <option value="class">按班级</option>
-          </select>
-        </div>
-
-        {analysisLevel === "year" && (
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">选择年段</label>
-            <select
-              value={analysisGrade}
-              onChange={(e) => setAnalysisGrade(e.target.value)}
-              className="w-full mt-2 px-3 py-2 border border-border rounded-lg bg-white"
-            >
-              <option value="">-- 选择年段 --</option>
-              {grades.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </select>
+        {/* 底部操作 */}
+        {students.length > 0 && (
+          <div className="mt-8 flex gap-4">
+            <Button onClick={handleExportExcel} variant="outline">
+              <Download className="mr-2" size={18} />
+              导出 Excel
+            </Button>
+            <Button onClick={handleClearAll} variant="destructive">
+              <Trash2 className="mr-2" size={18} />
+              清空所有数据
+            </Button>
           </div>
         )}
-
-        {analysisLevel === "class" && (
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">选择班级</label>
-            <select
-              value={analysisClass}
-              onChange={(e) => setAnalysisClass(e.target.value)}
-              className="w-full mt-2 px-3 py-2 border border-border rounded-lg bg-white"
-            >
-              <option value="">-- 选择班级 --</option>
-              {classes.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="flex items-end">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showGenderCompare}
-              onChange={(e) => setShowGenderCompare(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <span className="text-sm font-medium text-muted-foreground">性别对比</span>
-          </label>
-        </div>
-      </div>
-
-      {/* 统计数据 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">总人数</p>
-          <p className="text-2xl font-bold">{stats.count}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">平均分</p>
-          <p className="text-2xl font-bold">{stats.avgTotal}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">优秀率</p>
-          <p className="text-2xl font-bold">{stats.excellentRate}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">及格率</p>
-          <p className="text-2xl font-bold">{stats.passRate}</p>
-        </Card>
       </div>
     </div>
   );
