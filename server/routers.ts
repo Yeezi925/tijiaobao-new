@@ -18,6 +18,25 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+    login: publicProcedure
+      .input(
+        z.object({
+          name: z.string(),
+          phoneNumber: z.string().optional(),
+          userType: z.enum(["teacher", "student", "parent"]),
+          school: z.string().optional(),
+          grade: z.string().optional(),
+          className: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        // 简化登入流程，不需要验证
+        // 实际应用中需要集成短信验证
+        return {
+          success: true,
+          message: "Login successful",
+        };
+      }),
   }),
 
   ai: router({

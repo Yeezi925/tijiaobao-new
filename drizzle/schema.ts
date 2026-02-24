@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -17,6 +17,11 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  userType: mysqlEnum("userType", ["teacher", "student", "parent"]), // 用户类型：教师、学生、家长
+  phoneNumber: varchar("phoneNumber", { length: 20 }), // 手机号
+  school: varchar("school", { length: 255 }), // 学校
+  grade: varchar("grade", { length: 50 }), // 年段
+  className: varchar("className", { length: 100 }), // 班级
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -103,3 +108,59 @@ export const generatedLessonPlans = mysqlTable("generated_lesson_plans", {
 
 export type GeneratedLessonPlan = typeof generatedLessonPlans.$inferSelect;
 export type InsertGeneratedLessonPlan = typeof generatedLessonPlans.$inferInsert;
+// 学生成绩数据表（教师导入的数据）
+export const studentScoreData = mysqlTable("student_score_data", {
+  id: int("id").autoincrement().primaryKey(),
+  teacherId: int("teacherId").notNull(), // 教师ID
+  studentName: varchar("studentName", { length: 100 }).notNull(), // 学生姓名
+  studentId: varchar("studentId", { length: 100 }), // 学生ID（可选）
+  className: varchar("className", { length: 100 }).notNull(), // 班级
+  grade: varchar("grade", { length: 50 }).notNull(), // 年段
+  gender: mysqlEnum("gender", ["male", "female"]), // 性别
+  // 12项运动成绩
+  longDistance: int("longDistance"), // 长跑/游泳
+  basketball: int("basketball"), // 篮球
+  volleyball: int("volleyball"), // 排球
+  badminton: int("badminton"), // 羽毛球
+  tabletennis: int("tabletennis"), // 乒乓球
+  soccerFootball: int("soccerFootball"), // 足球
+  selected1: varchar("selected1", { length: 100 }), // 选考项目1
+  selected1Score: int("selected1Score"), // 选考项目1成绩
+  selected2: varchar("selected2", { length: 100 }), // 选考项目2
+  selected2Score: int("selected2Score"), // 选考项目2成绩
+  totalScore: int("totalScore"), // 总分（40分制）
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type StudentScoreData = typeof studentScoreData.$inferSelect;
+export type InsertStudentScoreData = typeof studentScoreData.$inferInsert;
+
+// 用户权限表（数据分享关系）
+export const userPermissions = mysqlTable("user_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(), // 数据所有者（教师）ID
+  granteeId: int("granteeId").notNull(), // 被授予权限的用户ID
+  permissionType: mysqlEnum("permissionType", ["view", "edit", "delete"]).default("view").notNull(), // 权限类型
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserPermission = typeof userPermissions.$inferSelect;
+export type InsertUserPermission = typeof userPermissions.$inferInsert;
+
+// 分享链接表
+export const shareLinks = mysqlTable("share_links", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(), // 分享者ID
+  shareCode: varchar("shareCode", { length: 50 }).notNull().unique(), // 分享码
+  dataType: mysqlEnum("dataType", ["class", "student", "all"]).default("class").notNull(), // 分享数据类型
+  className: varchar("className", { length: 100 }), // 班级（如果是班级分享）
+  studentId: int("studentId"), // 学生ID（如果是学生分享）
+  expiresAt: timestamp("expiresAt"), // 过期时间
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ShareLink = typeof shareLinks.$inferSelect;
+export type InsertShareLink = typeof shareLinks.$inferInsert;

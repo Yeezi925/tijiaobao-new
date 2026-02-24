@@ -15,6 +15,27 @@
       "when": 1771653861232,
       "tag": "0001_moaning_electro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1771805966954,
+      "tag": "0002_foamy_mikhail_rasputin",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1771863938875,
+      "tag": "0003_blue_blindfold",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1771901194125,
+      "tag": "0004_open_proteus",
+      "breakpoints": true
     }
   ]
 }
