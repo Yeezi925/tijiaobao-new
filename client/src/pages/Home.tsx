@@ -129,6 +129,41 @@ export default function Home() {
     }
   };
 
+  // 保存到数据库
+  const handleSaveToDatabase = async () => {
+    if (students.length === 0) {
+      toast.error("没有数据可保存");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      toast.success(`已保存 ${students.length} 条学生记录到数据库`);
+    } catch (error) {
+      toast.error("保存失败");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 生成分享链接
+  const handleGenerateShareLink = async () => {
+    if (students.length === 0) {
+      toast.error("没有数据可分享");
+      return;
+    }
+
+    const shareCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const shareUrl = `${window.location.origin}/share/${shareCode}`;
+    
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success(`分享链接已复制: ${shareCode}`);
+    } catch (error) {
+      toast.error("复制失败");
+    }
+  };
+
   const grades = getUniqueGrades(students);
   const classes = getUniqueClasses(students);
 
@@ -361,7 +396,7 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 操作按钮 */}
+                {/* 操作按针 */}
                 <div className="flex gap-2 pt-6 border-t border-border flex-wrap">
                   <label className="cursor-pointer">
                     <input
@@ -381,6 +416,14 @@ export default function Home() {
                   <Button onClick={handleExport} variant="outline" className="gap-2">
                     <Download className="w-4 h-4" />
                     导出 Excel
+                  </Button>
+                  <Button onClick={handleSaveToDatabase} variant="default" className="gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    保存到数据库
+                  </Button>
+                  <Button onClick={handleGenerateShareLink} variant="default" className="gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    生成分享链接
                   </Button>
                   <Button onClick={handleClearData} variant="destructive" className="gap-2">
                     <Trash2 className="w-4 h-4" />

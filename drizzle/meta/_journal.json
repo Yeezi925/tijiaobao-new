@@ -43,6 +43,13 @@
       "when": 1772097691369,
       "tag": "0005_short_wallow",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1772098902486,
+      "tag": "0006_sturdy_celestials",
+      "breakpoints": true
     }
   ]
 }

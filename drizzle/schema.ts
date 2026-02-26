@@ -103,3 +103,62 @@ export const generatedLessonPlans = mysqlTable("generated_lesson_plans", {
 
 export type GeneratedLessonPlan = typeof generatedLessonPlans.$inferSelect;
 export type InsertGeneratedLessonPlan = typeof generatedLessonPlans.$inferInsert;
+// 学生成绩数据表 - 教师保存的学生数据
+export const studentScoreData = mysqlTable("student_score_data", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // 教师ID
+  name: varchar("name", { length: 255 }).notNull(), // 学生姓名
+  grade: varchar("grade", { length: 50 }), // 年级
+  class: varchar("class", { length: 100 }), // 班级
+  school: varchar("school", { length: 255 }), // 学校
+  gender: mysqlEnum("gender", ["男", "女"]).notNull(), // 性别
+  
+  // 长跑/游泳
+  longrun: int("longrun"), // 长跑成绩
+  swim: int("swim"), // 游泳成绩
+  long100: int("long100"), // 100米成绩
+  longContrib: varchar("longContrib", { length: 50 }), // 长跑/游泳贡献分
+  
+  // 球类
+  football: int("football"), // 足球成绩
+  basketball: int("basketball"), // 篮球成绩
+  volleyball: int("volleyball"), // 排球成绩
+  ballContrib: varchar("ballContrib", { length: 50 }), // 球类贡献分
+  
+  // 选考项目
+  run50: int("run50"), // 50米成绩
+  situp: int("situp"), // 仰卧起坐成绩
+  ball: int("ball"), // 球类成绩
+  rope: int("rope"), // 跳绳成绩
+  pullup: int("pullup"), // 引体向上成绩
+  jump: int("jump"), // 跳远成绩
+  selectContrib: varchar("selectContrib", { length: 50 }), // 选考项目贡献分
+  selectedProjects: text("selectedProjects"), // JSON 格式的选考项目列表
+  
+  // 计算结果
+  total40: varchar("total40", { length: 50 }), // 40分制总分
+  status: varchar("status", { length: 50 }), // 状态
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type StudentScoreData = typeof studentScoreData.$inferSelect;
+export type InsertStudentScoreData = typeof studentScoreData.$inferInsert;
+
+// 分享链接表 - 教师生成的分享码
+export const shareLinks = mysqlTable("share_links", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // 教师ID
+  shareCode: varchar("shareCode", { length: 50 }).notNull().unique(), // 分享码
+  title: varchar("title", { length: 255 }).notNull(), // 分享标题（如班级名称）
+  description: text("description"), // 分享描述
+  studentIds: text("studentIds"), // JSON 格式的学生ID列表
+  expiresAt: timestamp("expiresAt"), // 过期时间
+  isActive: int("isActive").default(1).notNull(), // 是否激活（1=激活，0=停用）
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ShareLink = typeof shareLinks.$inferSelect;
+export type InsertShareLink = typeof shareLinks.$inferInsert;
