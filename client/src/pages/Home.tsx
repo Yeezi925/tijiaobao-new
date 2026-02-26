@@ -88,9 +88,7 @@ export default function Home() {
     setIsReady(true);
   }, []);
 
-  if (!isReady) {
-    return null;
-  }
+
 
   // 保存到本地存储
   const saveToStorage = (data: StudentRecord[]) => {
