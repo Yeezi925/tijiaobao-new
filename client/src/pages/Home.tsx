@@ -74,9 +74,6 @@ export default function Home() {
 
   // tRPC 保存学生数据
   const saveStudentMutation = trpc.teacher.saveStudentData.useMutation({
-    onSuccess: () => {
-      toast.success("学生数据已保存到数据库");
-    },
     onError: (error) => {
       toast.error(`保存失败: ${error.message}`);
     },
@@ -166,34 +163,48 @@ export default function Home() {
     setIsLoading(true);
     try {
       // 使用 tRPC 保存每个学生的数据
+      let successCount = 0;
+      let failCount = 0;
+      
       for (const student of students) {
-        await saveStudentMutation.mutateAsync({
-          name: student.name,
-          grade: student.grade,
-          class: student.class,
-          school: student.school,
-          gender: student.gender as "男" | "女",
-          longrun: student.longrun,
-          swim: student.swim,
-          long100: student.long100,
-          longContrib: student.longContrib?.toString(),
-          football: student.football,
-          basketball: student.basketball,
-          volleyball: student.volleyball,
-          ballContrib: student.ballContrib?.toString(),
-          run50: student.run50,
-          situp: student.situp,
-          ball: student.ball,
-          rope: student.rope,
-          pullup: student.pullup,
-          jump: student.jump,
-          selectContrib: student.selectContrib?.toString(),
-          selectedProjects: student.selectedProjects ? JSON.stringify(student.selectedProjects) : undefined,
-          total40: student.total40?.toString(),
-          status: student.status,
-        });
+        try {
+          await saveStudentMutation.mutateAsync({
+            name: student.name,
+            grade: student.grade,
+            class: student.class,
+            school: student.school,
+            gender: student.gender as "男" | "女",
+            longrun: student.longrun,
+            swim: student.swim,
+            long100: student.long100,
+            longContrib: student.longContrib?.toString(),
+            football: student.football,
+            basketball: student.basketball,
+            volleyball: student.volleyball,
+            ballContrib: student.ballContrib?.toString(),
+            run50: student.run50,
+            situp: student.situp,
+            ball: student.ball,
+            rope: student.rope,
+            pullup: student.pullup,
+            jump: student.jump,
+            selectContrib: student.selectContrib?.toString(),
+            selectedProjects: student.selectedProjects ? JSON.stringify(student.selectedProjects) : undefined,
+            total40: student.total40?.toString(),
+            status: student.status,
+          });
+          successCount++;
+        } catch (error) {
+          console.error(`保存 ${student.name} 失败:`, error);
+          failCount++;
+        }
       }
-      toast.success(`已保存 ${students.length} 条学生记录到数据库`);
+      
+      if (failCount === 0) {
+        toast.success(`已保存 ${successCount} 条学生记录到数据库`);
+      } else {
+        toast.warning(`保存完成: 成功 ${successCount} 条，失败 ${failCount} 条`);
+      }
     } catch (error) {
       console.error("保存失败:", error);
       toast.error("保存失败");
@@ -514,7 +525,30 @@ export default function Home() {
                         复制
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">将此分享码分享给家长，他们可以输入此码查看学生成绩</p>
+                    <div className="border-t border-green-200 pt-3 mt-3">
+                      <p className="text-sm text-muted-foreground mb-2">分享链接</p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          readOnly
+                          value={`${window.location.origin}/parent?code=${shareCode}`}
+                          className="text-sm bg-white"
+                        />
+                        <Button
+                          onClick={() => {
+                            const url = `${window.location.origin}/parent?code=${shareCode}`;
+                            navigator.clipboard.writeText(url);
+                            toast.success("链接已复制");
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                        >
+                          <Copy className="w-4 h-4" />
+                          复制
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">将分享码或链接分享给家长查看学生成绩</p>
                   </Card>
                 )}
               </Card>
