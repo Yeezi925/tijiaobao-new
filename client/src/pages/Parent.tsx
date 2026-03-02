@@ -71,11 +71,17 @@ export default function Parent() {
 
     setIsLoadingShare(true);
     try {
-      const queryClient = trpc.useUtils().parent.getSharedData;
-      const result = await queryClient.fetch({ shareCode });
+      // 使用 fetch API 直接调用后端
+      const response = await fetch('/api/trpc/parent.getSharedData', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ shareCode }),
+      });
+      const result = await response.json();
       
-      if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
-        const convertedData = result.data.map(s => ({
+      if (result && Array.isArray(result) && result.length > 0) {
+        const convertedData = result.map((s: any) => ({
           ...s,
           grade: s.grade || undefined,
           class: s.class || undefined,
