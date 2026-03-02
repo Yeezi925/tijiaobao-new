@@ -154,6 +154,7 @@ export const shareLinks = mysqlTable("share_links", {
   title: varchar("title", { length: 255 }).notNull(), // 分享标题（如班级名称）
   description: text("description"), // 分享描述
   studentIds: text("studentIds"), // JSON 格式的学生ID列表
+  studentData: text("studentData"), // JSON 格式的学生数据（包含所有学生信息）
   expiresAt: timestamp("expiresAt"), // 过期时间
   isActive: int("isActive").default(1).notNull(), // 是否激活（1=激活，0=停用）
   createdAt: timestamp("createdAt").defaultNow().notNull(),

@@ -23,3 +23,12 @@
 ## 待修复问题
 - [x] 导出成绩文件路径问题 - 导出成功但找不到文件
 - [x] 家长分享码查询失败 - 填入分享码未能查到成绩
+
+## 分享链接数据存储重构（当前）
+- [x] 修改 db.ts getSharedStudentData 优先返回 studentData
+- [x] 确认 schema.ts 中 shareLinks 表已有 studentData 字段
+- [x] 确认后端 createShareLink 路由接受并保存 studentData
+- [x] 确认前端 handleGenerateShareLink 发送完整学生数据
+- [x] 执行数据库迁移
+- [x] 编写单元测试验证新方案 (4/4 测试通过)
+- [x] 手动测试完整流程（成功）

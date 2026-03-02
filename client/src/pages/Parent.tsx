@@ -62,32 +62,27 @@ export default function Parent() {
     setFilteredStudents(result);
   };
 
-  // 处理分享码查询
-  const handleQueryByShareCode = async () => {
-    if (!shareCode.trim()) {
-      toast.error("请输入分享码");
-      return;
-    }
-
-    setIsLoadingShare(true);
-    try {
-      // 使用 fetch API 直接调用后端
-      const response = await fetch('/api/trpc/parent.getSharedData', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ shareCode }),
-      });
-      const result = await response.json();
-      
-      if (result && Array.isArray(result) && result.length > 0) {
-        const convertedData = result.map((s: any) => ({
-          ...s,
-          grade: s.grade || undefined,
-          class: s.class || undefined,
-          school: s.school || undefined,
-          selectedProjects: typeof s.selectedProjects === 'string' ? JSON.parse(s.selectedProjects) : s.selectedProjects,
-        })) as StudentRecord[];
+  // 使用 tRPC mutation 查询分享数据
+  const getSharedDataMutation = trpc.parent.getSharedData.useMutation({
+    onSuccess: (data) => {
+      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        const convertedData = data.data.map((s: any) => {
+          let selectedProjects = s.selectedProjects;
+          if (typeof selectedProjects === 'string') {
+            try {
+              selectedProjects = JSON.parse(selectedProjects);
+            } catch (e) {
+              console.warn("Failed to parse selectedProjects", e);
+            }
+          }
+          return {
+            ...s,
+            grade: s.grade || undefined,
+            class: s.class || undefined,
+            school: s.school || undefined,
+            selectedProjects,
+          };
+        }) as StudentRecord[];
         setStudents(convertedData);
         setFilteredStudents(convertedData);
         setHasLoadedData(true);
@@ -96,12 +91,21 @@ export default function Parent() {
       } else {
         toast.error("分享码无效或已过期");
       }
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("[Share code query error]", error);
       toast.error("加载分享数据失败");
-    } finally {
-      setIsLoadingShare(false);
+    },
+  });
+
+  // 处理分享码查询
+  const handleQueryByShareCode = async () => {
+    if (!shareCode.trim()) {
+      toast.error("请输入分享码");
+      return;
     }
+
+    await getSharedDataMutation.mutateAsync({ shareCode });
   };
 
   // AI 建议生成

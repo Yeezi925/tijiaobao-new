@@ -233,10 +233,12 @@ export default function Home() {
       }
 
       // 使用 tRPC 生成分享链接
+      // 发送学生数据，不仅是 ID
       await createShareLinkMutation.mutateAsync({
         title: "学生成绩分享",
         description: `分享 ${students.length} 名学生的成绩数据`,
         studentIds: students.map((_, idx) => idx + 1),
+        studentData: JSON.stringify(students),
         expiresAt,
       });
     } catch (error) {

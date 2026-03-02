@@ -175,6 +175,18 @@ export async function getSharedStudentData(shareCode: string) {
       return null;
     }
 
+    // 如果有 studentData，优先返回
+    if (shareLink.studentData) {
+      try {
+        const studentData = JSON.parse(shareLink.studentData);
+        if (Array.isArray(studentData) && studentData.length > 0) {
+          return studentData;
+        }
+      } catch (error) {
+        console.error("[Database] Failed to parse studentData:", error);
+      }
+    }
+
     // 解析学生ID列表
     const studentIds = JSON.parse(shareLink.studentIds || "[]") as number[];
     

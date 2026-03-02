@@ -114,6 +114,7 @@ export const appRouter = router({
           title: z.string(),
           description: z.string().optional(),
           studentIds: z.array(z.number()),
+          studentData: z.string().optional(),
           expiresAt: z.date().optional(),
         })
       )
@@ -128,6 +129,7 @@ export const appRouter = router({
             title: input.title,
             description: input.description,
             studentIds: JSON.stringify(input.studentIds),
+            studentData: input.studentData,
             expiresAt: input.expiresAt,
             isActive: 1,
           });
@@ -157,7 +159,7 @@ export const appRouter = router({
     // 通过分享码查询数据
     getSharedData: publicProcedure
       .input(z.object({ shareCode: z.string() }))
-      .query(async ({ input }) => {
+      .mutation(async ({ input }) => {
         try {
           const data = await getSharedStudentData(input.shareCode);
           if (!data) {
