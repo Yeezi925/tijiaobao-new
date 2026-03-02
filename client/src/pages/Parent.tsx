@@ -71,17 +71,19 @@ export default function Parent() {
 
     setIsLoadingShare(true);
     try {
-      // 调用后端 API 获取分享数据
-      const response = await fetch("/api/trpc/parent.getSharedData?input=" + encodeURIComponent(JSON.stringify({ shareCode })), {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
+      const queryClient = trpc.useUtils().parent.getSharedData;
+      const result = await queryClient.fetch({ shareCode });
       
-      const result = await response.json();
-      
-      if (result.result && result.result.data && Array.isArray(result.result.data) && result.result.data.length > 0) {
-        setStudents(result.result.data);
-        setFilteredStudents(result.result.data);
+      if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+        const convertedData = result.data.map(s => ({
+          ...s,
+          grade: s.grade || undefined,
+          class: s.class || undefined,
+          school: s.school || undefined,
+          selectedProjects: typeof s.selectedProjects === 'string' ? JSON.parse(s.selectedProjects) : s.selectedProjects,
+        })) as StudentRecord[];
+        setStudents(convertedData);
+        setFilteredStudents(convertedData);
         setHasLoadedData(true);
         toast.success("成功加载分享数据");
         setActiveTab("query");
@@ -89,8 +91,8 @@ export default function Parent() {
         toast.error("分享码无效或已过期");
       }
     } catch (error) {
+      console.error("[Share code query error]", error);
       toast.error("加载分享数据失败");
-      console.error(error);
     } finally {
       setIsLoadingShare(false);
     }

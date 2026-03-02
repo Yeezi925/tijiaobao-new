@@ -148,9 +148,10 @@ export default function Home() {
 
     try {
       await exportToExcel(students);
-      toast.success("导出成功");
+      toast.success("导出成功！文件已保存到下载文件夹");
     } catch (error) {
       toast.error("导出失败");
+      console.error(error);
     }
   };
 
