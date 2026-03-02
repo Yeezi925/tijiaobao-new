@@ -187,6 +187,18 @@ export async function getSharedStudentData(shareCode: string) {
       eq(studentScoreData.userId, shareLink.userId)
     );
 
+    // 检查 studentIds 是否是假 ID (1, 2, 3, ...)
+    // 假 ID 的特征：是连续的整数，且最大值等于数组长度
+    const isFakeIds = studentIds.length > 0 && 
+      studentIds.every((id, idx) => id === idx + 1) && 
+      studentIds[studentIds.length - 1] === studentIds.length;
+    
+    // 如果是假 ID，直接返回所有学生数据（按顶部顺序）
+    if (isFakeIds) {
+      return results.slice(0, studentIds.length);
+    }
+
+    // 否则根据真实 ID 过滤
     return results.filter(s => s.id && studentIds.includes(s.id));
   } catch (error) {
     console.error("[Database] Failed to get shared student data:", error);
