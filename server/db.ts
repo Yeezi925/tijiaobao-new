@@ -233,3 +233,52 @@ export async function getTeacherShareLinks(userId: number) {
     throw error;
   }
 }
+
+
+// 更新分享链接的查询统计
+export async function updateShareLinkQueryStats(shareCode: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const shareLink = await getShareLinkByCode(shareCode);
+    if (!shareLink) {
+      return null;
+    }
+
+    const result = await db.update(shareLinks)
+      .set({
+        queryCount: (shareLink.queryCount || 0) + 1,
+        lastQueryAt: new Date(),
+      })
+      .where(eq(shareLinks.shareCode, shareCode));
+    
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to update share link query stats:", error);
+    throw error;
+  }
+}
+
+// 根据权限过滤学生数据
+export async function filterStudentDataByPermission(
+  students: any[],
+  filterType: string,
+  filterValue: string
+) {
+  if (filterType === "all" || !filterType) {
+    return students;
+  }
+
+  if (filterType === "grade") {
+    return students.filter(s => s.grade === filterValue);
+  }
+
+  if (filterType === "class") {
+    return students.filter(s => s.class === filterValue);
+  }
+
+  return students;
+}

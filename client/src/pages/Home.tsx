@@ -41,6 +41,9 @@ export default function Home() {
   const [shareCode, setShareCode] = useState("");
   const [showShareCode, setShowShareCode] = useState(false);
   const [expireOption, setExpireOption] = useState<"7" | "30" | "90" | "never">("7");
+  // 分享权限控制
+  const [shareFilterType, setShareFilterType] = useState<"all" | "grade" | "class">("all");
+  const [shareFilterValue, setShareFilterValue] = useState("");
 
   // 查询过滤器
   const [queryType, setQueryType] = useState<"all" | "grade" | "class" | "name">("all");
@@ -216,6 +219,7 @@ export default function Home() {
   };
 
   // 生成分享链接
+  // 生成分享链接
   const handleGenerateShareLink = async () => {
     if (students.length === 0) {
       toast.error("没有数据可分享");
@@ -232,14 +236,29 @@ export default function Home() {
         expiresAt.setDate(expiresAt.getDate() + days);
       }
 
+      // 根据权限过滤学生数据
+      let dataToShare = students;
+      if (shareFilterType === "grade" && shareFilterValue) {
+        dataToShare = students.filter(s => s.grade === shareFilterValue);
+      } else if (shareFilterType === "class" && shareFilterValue) {
+        dataToShare = students.filter(s => s.class === shareFilterValue);
+      }
+
+      if (dataToShare.length === 0) {
+        toast.error("没有符合条件的学生数据");
+        return;
+      }
+
       // 使用 tRPC 生成分享链接
       // 发送学生数据，不仅是 ID
       await createShareLinkMutation.mutateAsync({
         title: "学生成绩分享",
-        description: `分享 ${students.length} 名学生的成绩数据`,
-        studentIds: students.map((_, idx) => idx + 1),
-        studentData: JSON.stringify(students),
+        description: `分享 ${dataToShare.length} 名学生的成绩数据`,
+        studentIds: dataToShare.map((_, idx) => idx + 1),
+        studentData: JSON.stringify(dataToShare),
         expiresAt,
+        filterType: shareFilterType,
+        filterValue: shareFilterValue,
       });
     } catch (error) {
       console.error("生成分享码失败:", error);
@@ -523,6 +542,47 @@ export default function Home() {
                         <option value="never">永久</option>
                       </select>
                     </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">分享范围:</label>
+                      <select
+                        value={shareFilterType}
+                        onChange={(e) => {
+                          setShareFilterType(e.target.value as "all" | "grade" | "class");
+                          setShareFilterValue("");
+                        }}
+                        className="px-3 py-2 border border-border rounded-md text-sm bg-white"
+                      >
+                        <option value="all">全部学生</option>
+                        <option value="grade">按年段</option>
+                        <option value="class">按班级</option>
+                      </select>
+                    </div>
+                    {shareFilterType === "grade" && (
+                      <select
+                        value={shareFilterValue}
+                        onChange={(e) => setShareFilterValue(e.target.value)}
+                        className="px-3 py-2 border border-border rounded-md text-sm bg-white"
+                      >
+                        <option value="">选择年段</option>
+                        {grades.map(grade => (
+                          <option key={grade} value={grade}>{grade}</option>
+                        ))}
+                      </select>
+                    )}
+                    {shareFilterType === "class" && (
+                      <select
+                        value={shareFilterValue}
+                        onChange={(e) => setShareFilterValue(e.target.value)}
+                        className="px-3 py-2 border border-border rounded-md text-sm bg-white"
+                      >
+                        <option value="">选择班级</option>
+                        {classes.map(cls => (
+                          <option key={cls} value={cls}>{cls}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
                     <Button onClick={handleGenerateShareLink} variant="default" className="gap-2" disabled={createShareLinkMutation.isPending || isLoading}>
                       <Sparkles className="w-4 h-4" />
                       {createShareLinkMutation.isPending ? "生成中..." : "生成分享链接"}

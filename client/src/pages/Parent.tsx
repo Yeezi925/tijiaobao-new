@@ -19,6 +19,7 @@ export default function Parent() {
   const [shareCode, setShareCode] = useState("");
   const [isLoadingShare, setIsLoadingShare] = useState(false);
   const [hasLoadedData, setHasLoadedData] = useState(false);
+  const [shareStats, setShareStats] = useState<{ queryCount: number; lastQueryAt: string | null } | null>(null);
 
   // 查询过滤器
   const [queryType, setQueryType] = useState<"all" | "grade" | "class" | "name">("all");
@@ -401,6 +402,25 @@ export default function Parent() {
                   >
                     {isLoadingShare ? "加载中..." : "查询"}
                   </Button>
+                </div>
+              </Card>
+            )}
+            {shareStats && (
+              <Card className="p-4 mt-4 bg-blue-50 border-blue-200">
+                <h4 className="font-semibold text-sm mb-2">分享统计信息</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">查询次数</p>
+                    <p className="text-lg font-bold text-blue-600">{shareStats.queryCount}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">最后查询时间</p>
+                    <p className="text-sm font-medium">
+                      {shareStats.lastQueryAt 
+                        ? new Date(shareStats.lastQueryAt).toLocaleString('zh-CN')
+                        : "暂无"}
+                    </p>
+                  </div>
                 </div>
               </Card>
             )}

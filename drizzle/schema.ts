@@ -155,6 +155,13 @@ export const shareLinks = mysqlTable("share_links", {
   description: text("description"), // 分享描述
   studentIds: text("studentIds"), // JSON 格式的学生ID列表
   studentData: text("studentData"), // JSON 格式的学生数据（包含所有学生信息）
+  // 权限控制字段
+  filterType: varchar("filterType", { length: 20 }).default("all"), // 过滤类型: all(全部), grade(年段), class(班级)
+  filterValue: varchar("filterValue", { length: 100 }), // 过滤值: 年段或班级名称
+  // 统计字段
+  queryCount: int("queryCount").default(0).notNull(), // 查询次数
+  lastQueryAt: timestamp("lastQueryAt"), // 最后查询时间
+  // 其他字段
   expiresAt: timestamp("expiresAt"), // 过期时间
   isActive: int("isActive").default(1).notNull(), // 是否激活（1=激活，0=停用）
   createdAt: timestamp("createdAt").defaultNow().notNull(),

@@ -116,6 +116,8 @@ export const appRouter = router({
           studentIds: z.array(z.number()),
           studentData: z.string().optional(),
           expiresAt: z.date().optional(),
+          filterType: z.enum(["all", "grade", "class"]).default("all"),
+          filterValue: z.string().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -130,6 +132,8 @@ export const appRouter = router({
             description: input.description,
             studentIds: JSON.stringify(input.studentIds),
             studentData: input.studentData,
+            filterType: input.filterType,
+            filterValue: input.filterValue,
             expiresAt: input.expiresAt,
             isActive: 1,
           });
@@ -161,10 +165,32 @@ export const appRouter = router({
       .input(z.object({ shareCode: z.string() }))
       .mutation(async ({ input }) => {
         try {
+          const { updateShareLinkQueryStats, filterStudentDataByPermission, getShareLinkByCode } = await import("./db");
           const data = await getSharedStudentData(input.shareCode);
           if (!data) {
             return { success: false, error: "Invalid or expired share code", data: [] };
           }
+          
+          // 更新查询统计
+          try {
+            const shareLink = await getShareLinkByCode(input.shareCode);
+            
+            if (shareLink) {
+              await updateShareLinkQueryStats(input.shareCode);
+              
+              // 应用权限控制
+              const filteredData = await filterStudentDataByPermission(
+                data,
+                shareLink.filterType || "all",
+                shareLink.filterValue || ""
+              );
+              
+              return { success: true, data: filteredData };
+            }
+          } catch (statsError) {
+            console.warn("[Failed to update stats or filter data]", statsError);
+          }
+          
           return { success: true, data };
         } catch (error) {
           console.error("[Get shared data failed]", error);
