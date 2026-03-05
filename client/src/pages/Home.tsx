@@ -325,6 +325,9 @@ export default function Home() {
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">数据管理</span>
             </TabsTrigger>
+            <TabsTrigger value="wechat" className="flex items-center gap-2">
+              <span className="text-sm">微信</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* 导入/查询标签页 */}
@@ -936,5 +939,80 @@ function StatCard({
       <p className="text-xs opacity-90 mb-1">{label}</p>
       <p className="text-2xl font-bold">{value}</p>
     </div>
+  );
+}
+
+
+/**
+ * 微信管理组件
+ */
+function WechatManagement() {
+  const [wechatId, setWechatId] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const getWechatQuery = trpc.teacher.getWechatId.useQuery();
+  const updateWechatMutation = trpc.teacher.updateWechatId.useMutation({
+    onSuccess: () => {
+      toast.success("微信号已保存");
+      getWechatQuery.refetch();
+    },
+    onError: (error) => {
+      toast.error(`保存失败: ${error.message}`);
+    },
+  });
+
+  useEffect(() => {
+    if (getWechatQuery.data?.wechatId) {
+      setWechatId(getWechatQuery.data.wechatId);
+    }
+  }, [getWechatQuery.data]);
+
+  const handleSaveWechat = () => {
+    if (!wechatId.trim()) {
+      toast.error("请输入微信号");
+      return;
+    }
+    setIsSaving(true);
+    updateWechatMutation.mutate({ wechatId: wechatId.trim() }, {
+      onSettled: () => setIsSaving(false),
+    });
+  };
+
+  return (
+    <Card className="p-6 bg-white">
+      <h2 className="text-2xl font-semibold mb-6">微信号管理</h2>
+      <div className="space-y-4 max-w-md">
+        <div>
+          <label className="text-sm font-medium text-muted-foreground">微信号</label>
+          <Input
+            placeholder="请输入你的微信号"
+            value={wechatId}
+            onChange={(e) => setWechatId(e.target.value)}
+            className="mt-2"
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            家长可通过此微信号扫描二维码添加你，进行咨询沟通
+          </p>
+        </div>
+        <Button
+          onClick={handleSaveWechat}
+          disabled={isSaving || updateWechatMutation.isPending}
+          className="w-full"
+        >
+          {isSaving || updateWechatMutation.isPending ? "保存中..." : "保存微信号"}
+        </Button>
+        {wechatId && (
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-muted-foreground mb-3">家长可以通过以下方式添加你：</p>
+            <div className="space-y-2 text-sm">
+              <p>1. 在家长端输入你的微信号</p>
+              <p>2. 系统会生成微信二维码</p>
+              <p>3. 家长扫描二维码添加你的微信</p>
+              <p>4. 在应用内提交咨询问题</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }

@@ -170,3 +170,32 @@ export const shareLinks = mysqlTable("share_links", {
 
 export type ShareLink = typeof shareLinks.$inferSelect;
 export type InsertShareLink = typeof shareLinks.$inferInsert;
+
+// 老师微信信息表
+export const teacherWechat = mysqlTable("teacher_wechat", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(), // 教师用户ID
+  wechatId: varchar("wechatId", { length: 100 }).notNull(), // 微信号
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TeacherWechat = typeof teacherWechat.$inferSelect;
+export type InsertTeacherWechat = typeof teacherWechat.$inferInsert;
+
+// 家长咨询记录表
+export const parentConsultations = mysqlTable("parent_consultations", {
+  id: int("id").autoincrement().primaryKey(),
+  parentId: int("parentId").notNull(), // 家长用户ID
+  teacherId: int("teacherId").notNull(), // 教师用户ID
+  studentId: int("studentId"), // 学生ID（可选，用于关联具体学生）
+  title: varchar("title", { length: 255 }).notNull(), // 咨询标题
+  content: text("content").notNull(), // 咨询内容
+  reply: text("reply"), // 老师回复内容
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // 状态: pending(待回复), replied(已回复)
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ParentConsultation = typeof parentConsultations.$inferSelect;
+export type InsertParentConsultation = typeof parentConsultations.$inferInsert;

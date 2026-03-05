@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { eq, and, desc } from "drizzle-orm";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -282,3 +282,111 @@ export async function filterStudentDataByPermission(
 
   return students;
 }
+
+
+// ===== 咨询相关函数 =====
+
+// 获取或创建老师的微信信息
+export async function getTeacherWechat(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const { teacherWechat } = await import("../drizzle/schema");
+    const result = await db.select().from(teacherWechat).where(eq(teacherWechat.userId, userId));
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get teacher wechat:", error);
+    throw error;
+  }
+}
+
+// 更新老师的微信号
+export async function updateTeacherWechat(userId: number, wechatId: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const { teacherWechat } = await import("../drizzle/schema");
+    
+    // 先检查是否存在
+    const existing = await getTeacherWechat(userId);
+    
+    if (existing) {
+      // 更新
+      const result = await db.update(teacherWechat)
+        .set({ wechatId })
+        .where(eq(teacherWechat.userId, userId));
+      return result;
+    } else {
+      // 插入
+      const result = await db.insert(teacherWechat).values({
+        userId,
+        wechatId,
+      });
+      return result;
+    }
+  } catch (error) {
+    console.error("[Database] Failed to update teacher wechat:", error);
+    throw error;
+  }
+}
+
+// 提交家长咨询
+export async function createParentConsultation(
+  parentId: number,
+  teacherId: number,
+  title: string,
+  content: string,
+  studentId?: number
+) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const { parentConsultations } = await import("../drizzle/schema");
+    const result = await db.insert(parentConsultations).values({
+      parentId,
+      teacherId,
+      studentId,
+      title,
+      content,
+      status: "pending",
+    });
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to create consultation:", error);
+    throw error;
+  }
+}
+
+// 获取家长的咨询历史
+export async function getParentConsultations(parentId: number, teacherId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const { parentConsultations } = await import("../drizzle/schema");
+    const result = await db.select()
+      .from(parentConsultations)
+      .where(and(
+        eq(parentConsultations.parentId, parentId),
+        eq(parentConsultations.teacherId, teacherId)
+      ))
+      .orderBy(desc(parentConsultations.createdAt));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get consultations:", error);
+    throw error;
+  }
+}
+
+

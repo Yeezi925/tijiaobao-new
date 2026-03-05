@@ -156,6 +156,39 @@ export const appRouter = router({
           return { success: false, data: [] };
         }
       }),
+    
+    updateWechatId: protectedProcedure
+      .input(z.object({ wechatId: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const { updateTeacherWechat } = await import("./db");
+          const teacherId = ctx.user?.id;
+          if (!teacherId) {
+            return { success: false, error: "User not authenticated" };
+          }
+          await updateTeacherWechat(teacherId, input.wechatId);
+          return { success: true };
+        } catch (error) {
+          console.error("[Update wechat failed]", error);
+          return { success: false, error: "Failed to update wechat" };
+        }
+      }),
+    
+    getWechatId: protectedProcedure
+      .query(async ({ ctx }) => {
+        try {
+          const { getTeacherWechat } = await import("./db");
+          const teacherId = ctx.user?.id;
+          if (!teacherId) {
+            return { success: false, wechatId: null };
+          }
+          const wechat = await getTeacherWechat(teacherId);
+          return { success: true, wechatId: wechat?.wechatId || null };
+        } catch (error) {
+          console.error("[Get wechat failed]", error);
+          return { success: false, wechatId: null };
+        }
+      }),
   }),
 
   // 家长查询功能
@@ -195,6 +228,70 @@ export const appRouter = router({
         } catch (error) {
           console.error("[Get shared data failed]", error);
           return { success: false, error: "Failed to get shared data", data: [] };
+        }
+      }),
+    
+    // 获取老师的微信号（用于生成二维码）
+    getTeacherWechat: publicProcedure
+      .input(z.object({ teacherId: z.number() }))
+      .query(async ({ input }) => {
+        try {
+          const { getTeacherWechat } = await import("./db");
+          const wechat = await getTeacherWechat(input.teacherId);
+          return { success: true, wechatId: wechat?.wechatId || null };
+        } catch (error) {
+          console.error("[Get teacher wechat failed]", error);
+          return { success: false, wechatId: null };
+        }
+      }),
+    
+    // 提交咨询
+    submitConsultation: protectedProcedure
+      .input(z.object({
+        teacherId: z.number(),
+        title: z.string(),
+        content: z.string(),
+        studentId: z.number().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const { createParentConsultation } = await import("./db");
+          const parentId = ctx.user?.id;
+          if (!parentId) {
+            return { success: false, error: "User not authenticated" };
+          }
+          
+          await createParentConsultation(
+            parentId,
+            input.teacherId,
+            input.title,
+            input.content,
+            input.studentId
+          );
+          
+          return { success: true };
+        } catch (error) {
+          console.error("[Submit consultation failed]", error);
+          return { success: false, error: "Failed to submit consultation" };
+        }
+      }),
+    
+    // 获取咨询历史
+    getConsultationHistory: protectedProcedure
+      .input(z.object({ teacherId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        try {
+          const { getParentConsultations } = await import("./db");
+          const parentId = ctx.user?.id;
+          if (!parentId) {
+            return { success: false, consultations: [] };
+          }
+          
+          const consultations = await getParentConsultations(parentId, input.teacherId);
+          return { success: true, consultations };
+        } catch (error) {
+          console.error("[Get consultations failed]", error);
+          return { success: false, consultations: [] };
         }
       }),
   }),

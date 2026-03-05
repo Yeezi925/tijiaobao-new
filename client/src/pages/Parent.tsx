@@ -171,8 +171,9 @@ export default function Parent() {
       {/* 主要内容 */}
       <div className="max-w-7xl mx-auto p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-1">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="query">查询与建议</TabsTrigger>
+            <TabsTrigger value="consultation">咨询老师</TabsTrigger>
           </TabsList>
 
           {/* 查询标签页 */}
@@ -425,8 +426,165 @@ export default function Parent() {
               </Card>
             )}
           </TabsContent>
+
+          {/* 咨询标签页 */}
+          <TabsContent value="consultation" className="space-y-4">
+            {!hasLoadedData ? (
+              <Card className="p-6 text-center text-muted-foreground">
+                请先查询成绩数据，然后可以联系老师
+              </Card>
+            ) : (
+              <ConsultationPanel />
+            )}
+          </TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+
+/**
+ * 咨询面板组件
+ */
+function ConsultationPanel() {
+  const [teacherId, setTeacherId] = useState(1); // 假设教师 ID，实际应从分享链接中获取
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [wechatId, setWechatId] = useState("");
+  const [showWechatQR, setShowWechatQR] = useState(false);
+
+  const getTeacherWechatQuery = trpc.parent.getTeacherWechat.useQuery({ teacherId });
+  const submitConsultationMutation = trpc.parent.submitConsultation.useMutation({
+    onSuccess: () => {
+      toast.success("咨询已提交，老师会尽快回复");
+      setTitle("");
+      setContent("");
+    },
+    onError: (error) => {
+      toast.error(`提交失败: ${error.message}`);
+    },
+  });
+  const getConsultationHistoryQuery = trpc.parent.getConsultationHistory.useQuery({ teacherId });
+
+  useEffect(() => {
+    if (getTeacherWechatQuery.data?.wechatId) {
+      setWechatId(getTeacherWechatQuery.data.wechatId);
+    }
+  }, [getTeacherWechatQuery.data]);
+
+  const handleSubmitConsultation = () => {
+    if (!title.trim() || !content.trim()) {
+      toast.error("请填写咨询标题和内容");
+      return;
+    }
+    submitConsultationMutation.mutate({
+      teacherId,
+      title: title.trim(),
+      content: content.trim(),
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* 微信联系方式 */}
+      {wechatId && (
+        <Card className="p-6 bg-green-50 border-green-200">
+          <h3 className="font-semibold mb-4">微信直接联系</h3>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              老师微信号：<span className="font-mono font-bold text-green-700">{wechatId}</span>
+            </p>
+            <Button
+              onClick={() => setShowWechatQR(!showWechatQR)}
+              variant="outline"
+              className="w-full"
+            >
+              {showWechatQR ? "隐藏" : "显示"}微信二维码
+            </Button>
+            {showWechatQR && (
+              <div className="mt-4 p-4 bg-white rounded-lg border border-green-200 text-center">
+                <p className="text-sm text-muted-foreground mb-3">使用微信扫描二维码添加老师</p>
+                <div className="inline-block p-4 bg-white border-2 border-green-300 rounded">
+                  <div className="w-40 h-40 bg-gray-100 flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground">
+                      二维码生成中...
+                      <br />
+                      (微信号: {wechatId})
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* 应用内咨询 */}
+      <Card className="p-6">
+        <h3 className="font-semibold mb-4">应用内咨询</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">咨询标题</label>
+            <Input
+              placeholder="例如：关于孩子的体育成绩"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="mt-2"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">咨询内容</label>
+            <textarea
+              placeholder="请详细描述你的问题..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full mt-2 p-3 border border-border rounded-lg resize-none"
+              rows={5}
+            />
+          </div>
+          <Button
+            onClick={handleSubmitConsultation}
+            disabled={submitConsultationMutation.isPending}
+            className="w-full"
+          >
+            {submitConsultationMutation.isPending ? "提交中..." : "提交咨询"}
+          </Button>
+        </div>
+      </Card>
+
+      {/* 咨询历史 */}
+      {getConsultationHistoryQuery.data?.consultations && getConsultationHistoryQuery.data.consultations.length > 0 && (
+        <Card className="p-6">
+          <h3 className="font-semibold mb-4">咨询历史</h3>
+          <div className="space-y-3">
+            {getConsultationHistoryQuery.data.consultations.map((consultation: any) => (
+              <div key={consultation.id} className="border border-border rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="font-medium">{consultation.title}</h4>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    consultation.status === 'replied' 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {consultation.status === 'replied' ? '已回复' : '待回复'}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">{consultation.content}</p>
+                {consultation.reply && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+                    <p className="text-xs text-muted-foreground mb-1">老师回复：</p>
+                    <p className="text-sm">{consultation.reply}</p>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-2">
+                  {new Date(consultation.createdAt).toLocaleString('zh-CN')}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
