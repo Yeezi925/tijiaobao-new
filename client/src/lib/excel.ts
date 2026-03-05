@@ -102,19 +102,26 @@ export async function exportToExcel(records: StudentRecord[], filename: string =
   const exportData = records.map((s) => {
     const proj1 = (s.selectedProjects?.[0] || {}) as { name?: string; contrib?: string };
     const proj2 = (s.selectedProjects?.[1] || {}) as { name?: string; contrib?: string };
+    
+    // 计算总得分
+    const longScore = parseFloat(s.longContrib || "0");
+    const ballScore = parseFloat(s.ballContrib || "0");
+    const selectScore = parseFloat(s.selectContrib || "0");
+    const totalScore = (longScore + ballScore + selectScore).toFixed(1);
+    
     return {
       姓名: s.name || "",
       班级: s.class || "",
       学校: s.school || "",
       性别: s.gender || "",
-      总分40: s.total40 || "",
-      长跑游泳得分: s.longContrib || "",
-      球类得分: s.ballContrib || "",
-      选考总得分: s.selectContrib || "",
+      长跑游泳总分: s.longContrib || "",
+      球类总分: s.ballContrib || "",
+      选考总分: s.selectContrib || "",
       选考1项目: proj1.name || "",
       选考1得分: proj1.contrib || "",
       选考2项目: proj2.name || "",
       选考2得分: proj2.contrib || "",
+      总得分: totalScore,
       状态: s.status || ""
     };
   });
