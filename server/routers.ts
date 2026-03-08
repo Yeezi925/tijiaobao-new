@@ -199,9 +199,10 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         try {
           const { updateShareLinkQueryStats, filterStudentDataByPermission, getShareLinkByCode } = await import("./db");
+          let teacherId = null;
           const data = await getSharedStudentData(input.shareCode);
           if (!data) {
-            return { success: false, error: "Invalid or expired share code", data: [] };
+            return { success: false, error: "Invalid or expired share code", data: [], teacherId: null };
           }
           
           // 更新查询统计
@@ -218,7 +219,8 @@ export const appRouter = router({
                 shareLink.filterValue || ""
               );
               
-              return { success: true, data: filteredData };
+              teacherId = shareLink.userId;
+              return { success: true, data: filteredData, teacherId };
             }
           } catch (statsError) {
             console.warn("[Failed to update stats or filter data]", statsError);
@@ -227,7 +229,7 @@ export const appRouter = router({
           return { success: true, data };
         } catch (error) {
           console.error("[Get shared data failed]", error);
-          return { success: false, error: "Failed to get shared data", data: [] };
+          return { success: false, error: "Failed to get shared data", data: [], teacherId: null };
         }
       }),
     

@@ -706,6 +706,11 @@ export default function Home() {
               </div>
             </Card>
           </TabsContent>
+
+          {/* 微信管理标签页 */}
+          <TabsContent value="wechat" className="space-y-4">
+            <WechatManagement />
+          </TabsContent>
         </Tabs>
       </main>
     </div>

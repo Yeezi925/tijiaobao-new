@@ -20,6 +20,7 @@ export default function Parent() {
   const [isLoadingShare, setIsLoadingShare] = useState(false);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [shareStats, setShareStats] = useState<{ queryCount: number; lastQueryAt: string | null } | null>(null);
+  const [teacherId, setTeacherId] = useState<number | null>(null);
 
   // 查询过滤器
   const [queryType, setQueryType] = useState<"all" | "grade" | "class" | "name">("all");
@@ -87,6 +88,7 @@ export default function Parent() {
         setStudents(convertedData);
         setFilteredStudents(convertedData);
         setHasLoadedData(true);
+        setTeacherId(data.teacherId || null);
         toast.success("成功加载分享数据");
         setActiveTab("query");
       } else {
@@ -434,7 +436,7 @@ export default function Parent() {
                 请先查询成绩数据，然后可以联系老师
               </Card>
             ) : (
-              <ConsultationPanel />
+              <ConsultationPanel teacherId={teacherId} />
             )}
           </TabsContent>
         </Tabs>
@@ -447,14 +449,13 @@ export default function Parent() {
 /**
  * 咨询面板组件
  */
-function ConsultationPanel() {
-  const [teacherId, setTeacherId] = useState(1); // 假设教师 ID，实际应从分享链接中获取
+function ConsultationPanel({ teacherId }: { teacherId: number | null }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [wechatId, setWechatId] = useState("");
   const [showWechatQR, setShowWechatQR] = useState(false);
 
-  const getTeacherWechatQuery = trpc.parent.getTeacherWechat.useQuery({ teacherId });
+  const getTeacherWechatQuery = trpc.parent.getTeacherWechat.useQuery({ teacherId: teacherId || 0 }, { enabled: !!teacherId });
   const submitConsultationMutation = trpc.parent.submitConsultation.useMutation({
     onSuccess: () => {
       toast.success("咨询已提交，老师会尽快回复");
@@ -465,7 +466,7 @@ function ConsultationPanel() {
       toast.error(`提交失败: ${error.message}`);
     },
   });
-  const getConsultationHistoryQuery = trpc.parent.getConsultationHistory.useQuery({ teacherId });
+  const getConsultationHistoryQuery = trpc.parent.getConsultationHistory.useQuery({ teacherId: teacherId || 0 }, { enabled: !!teacherId });
 
   useEffect(() => {
     if (getTeacherWechatQuery.data?.wechatId) {
@@ -476,6 +477,10 @@ function ConsultationPanel() {
   const handleSubmitConsultation = () => {
     if (!title.trim() || !content.trim()) {
       toast.error("请填写咨询标题和内容");
+      return;
+    }
+    if (!teacherId) {
+      toast.error("无法获取老师信息，请重新查询");
       return;
     }
     submitConsultationMutation.mutate({
