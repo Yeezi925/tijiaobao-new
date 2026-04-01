@@ -9,4 +9,5 @@ export const ENV = {
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   doubanAccessKeyId: process.env.DOUBAN_ACCESS_KEY_ID ?? "",
   doubanSecretAccessKey: process.env.DOUBAN_SECRET_ACCESS_KEY ?? "",
+  aliyunDashscopeApiKey: process.env.ALIYUN_DASHSCOPE_API_KEY ?? "",
 };

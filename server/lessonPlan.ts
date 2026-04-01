@@ -13,6 +13,7 @@ import {
   generatedLessonPlans,
 } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
+import { invokeAliyunLLM } from "./_core/aliyunLlm";
 import { eq } from "drizzle-orm";
 
 export const lessonPlanRouter = router({
@@ -140,19 +141,17 @@ export const lessonPlanRouter = router({
         })),
       ];
 
-      // 调用 LLM
-      const response = await invokeLLM({
-        messages: messages as any,
+      // 调用 LLM（使用阿里云百炼支持中国用户）
+      const response = await invokeAliyunLLM({
+        messages: messages.map((msg) => ({
+          role: msg.role as "system" | "user" | "assistant",
+          content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+        })),
       });
 
       let aiResponse = "抱歉，生成回复时出现错误";
-      const messageContent = response.choices[0]?.message?.content;
-      if (typeof messageContent === "string") {
-        aiResponse = messageContent;
-      } else if (Array.isArray(messageContent)) {
-        aiResponse = JSON.stringify(messageContent);
-      } else if (messageContent) {
-        aiResponse = JSON.stringify(messageContent);
+      if (response.output?.text) {
+        aiResponse = response.output.text;
       }
 
       // 保存 AI 响应
@@ -216,7 +215,7 @@ ${conversationSummary}
 
 请确保内容专业、详细、具有可操作性。`;
 
-      const response = await invokeLLM({
+      const response = await invokeAliyunLLM({
         messages: [
           {
             role: "system",
@@ -227,17 +226,12 @@ ${conversationSummary}
             role: "user",
             content: generatePrompt,
           },
-        ] as any,
+        ],
       });
 
       let content = "";
-      const messageContent = response.choices[0]?.message?.content;
-      if (typeof messageContent === "string") {
-        content = messageContent;
-      } else if (Array.isArray(messageContent)) {
-        content = JSON.stringify(messageContent);
-      } else if (messageContent) {
-        content = JSON.stringify(messageContent);
+      if (response.output?.text) {
+        content = response.output.text;
       }
 
       if (!content) {
