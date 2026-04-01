@@ -956,31 +956,32 @@ function WechatManagement() {
   const [isSaving, setIsSaving] = useState(false);
   
   const getWechatQuery = trpc.teacher.getWechatId.useQuery();
-  const updateWechatMutation = trpc.teacher.updateWechatId.useMutation({
-    onSuccess: () => {
-      toast.success("微信号已保存");
-      getWechatQuery.refetch();
-    },
-    onError: (error) => {
-      toast.error(`保存失败: ${error.message}`);
-    },
-  });
+  const updateWechatMutation = trpc.teacher.updateWechatId.useMutation();
+  const isLoading = updateWechatMutation.isPending;
 
   useEffect(() => {
     if (getWechatQuery.data?.wechatId) {
       setWechatId(getWechatQuery.data.wechatId);
     }
-  }, [getWechatQuery.data]);
+  }, [getWechatQuery.data?.wechatId]);
 
   const handleSaveWechat = () => {
     if (!wechatId.trim()) {
       toast.error("请输入微信号");
       return;
     }
-    setIsSaving(true);
-    updateWechatMutation.mutate({ wechatId: wechatId.trim() }, {
-      onSettled: () => setIsSaving(false),
-    });
+    updateWechatMutation.mutate(
+      { wechatId: wechatId.trim() },
+      {
+        onSuccess: () => {
+          toast.success("微信号已保存");
+          getWechatQuery.refetch();
+        },
+        onError: (error) => {
+          toast.error(`保存失败: ${error.message}`);
+        },
+      }
+    );
   };
 
   return (
@@ -1001,10 +1002,10 @@ function WechatManagement() {
         </div>
         <Button
           onClick={handleSaveWechat}
-          disabled={isSaving || updateWechatMutation.isPending}
+          disabled={isLoading}
           className="w-full"
         >
-          {isSaving || updateWechatMutation.isPending ? "保存中..." : "保存微信号"}
+          {isLoading ? "保存中..." : "保存微信号"}
         </Button>
         {wechatId && (
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
