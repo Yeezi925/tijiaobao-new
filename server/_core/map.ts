@@ -18,14 +18,13 @@ type MapsConfig = {
   apiKey: string;
 };
 
-function getMapsConfig(): MapsConfig {
+function getMapsConfig(): MapsConfig | null {
   const baseUrl = ENV.forgeApiUrl;
   const apiKey = ENV.forgeApiKey;
 
   if (!baseUrl || !apiKey) {
-    throw new Error(
-      "Google Maps proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
-    );
+    console.warn("[Maps] Google Maps proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY");
+    return null;
   }
 
   return {
@@ -56,37 +55,49 @@ export async function makeRequest<T = unknown>(
   params: Record<string, unknown> = {},
   options: RequestOptions = {}
 ): Promise<T> {
-  const { baseUrl, apiKey } = getMapsConfig();
-
-  // Construct full URL: baseUrl + /v1/maps/proxy + endpoint
-  const url = new URL(`${baseUrl}/v1/maps/proxy${endpoint}`);
-
-  // Add API key as query parameter (standard Google Maps API authentication)
-  url.searchParams.append("key", apiKey);
-
-  // Add other query parameters
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      url.searchParams.append(key, String(value));
+  try {
+    const config = getMapsConfig();
+    if (!config) {
+      console.warn("[Maps] Configuration missing, returning empty object");
+      return {} as T;
     }
-  });
 
-  const response = await fetch(url.toString(), {
-    method: options.method || "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
+    const { baseUrl, apiKey } = config;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Google Maps API request failed (${response.status} ${response.statusText}): ${errorText}`
-    );
+    // Construct full URL: baseUrl + /v1/maps/proxy + endpoint
+    const url = new URL(`${baseUrl}/v1/maps/proxy${endpoint}`);
+
+    // Add API key as query parameter (standard Google Maps API authentication)
+    url.searchParams.append("key", apiKey);
+
+    // Add other query parameters
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.append(key, String(value));
+      }
+    });
+
+    const response = await fetch(url.toString(), {
+      method: options.method || "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.warn(`[Maps] Request failed (${response.status}): ${errorText}`);
+      // Return empty object to allow graceful degradation
+      return {} as T;
+    }
+
+    return (await response.json()) as T;
+  } catch (error) {
+    console.error("[Maps] Error:", error instanceof Error ? error.message : error);
+    // Return empty object to allow graceful degradation
+    return {} as T;
   }
-
-  return (await response.json()) as T;
 }
 
 // ============================================================================

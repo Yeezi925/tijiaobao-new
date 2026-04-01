@@ -75,3 +75,13 @@
 - [x] 添加 API Key 到环境变量 (ALIYUN_DASHSCOPE_API_KEY)
 - [x] 编写单元测试验证集成 (3/3 测试通过)
 - [x] 验证所有测试通过 (14/14 测试通过)
+
+## 中国用户"地区不可用"问题修复
+- [x] 为所有 Manus API 调用添加错误处理和降级逻辑
+- [x] 修改 imageGeneration.ts 添加 try-catch 和降级处理
+- [x] 修改 dataApi.ts 添加 try-catch 和降级处理
+- [x] 修改 voiceTranscription.ts 已有完善的错误处理
+- [x] 修改 notification.ts 已有完善的错误处理
+- [x] 修改 map.ts 添加 try-catch 和降级处理
+- [x] 单元测试验证 (14/14 通过)
+- [x] TypeScript 编译检查 (无错误)
