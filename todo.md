@@ -85,3 +85,9 @@
 - [x] 修改 map.ts 添加 try-catch 和降级处理
 - [x] 单元测试验证 (14/14 通过)
 - [x] TypeScript 编译检查 (无错误)
+
+
+## 中国用户 Google 资源阻止问题修复
+- [x] 移除 Google Fonts 引用 (改用系统字体)
+- [x] TypeScript 编译检查 (无错误)
+- [x] 单元测试验证 (14/14 通过)
