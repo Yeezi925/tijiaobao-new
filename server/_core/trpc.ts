@@ -43,3 +43,11 @@ export const adminProcedure = t.procedure.use(
     });
   }),
 );
+
+/**
+ * 小程序专用：复用同样的 requireUser 中间件
+ * 区别在于 context 是通过 createMiniContext 创建的（从 header 读 token）
+ * procedure 本身是一样的
+ */
+export const miniRouter = t.router;
+export const miniProcedure = t.procedure.use(requireUser);

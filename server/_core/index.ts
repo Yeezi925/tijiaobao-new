@@ -4,8 +4,10 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
+import { registerWechatMiniRoutes } from "./wechat";
 import { appRouter } from "../routers";
-import { createContext } from "./context";
+import { miniAppRouter } from "../routers";
+import { createContext, createMiniContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -35,12 +37,22 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
-  // tRPC API
+  // 微信小程序登录
+  registerWechatMiniRoutes(app);
+  // tRPC API (Web - Cookie auth)
   app.use(
     "/api/trpc",
     createExpressMiddleware({
       router: appRouter,
       createContext,
+    })
+  );
+  // tRPC API (小程序 - Authorization header auth)
+  app.use(
+    "/api/mini/trpc",
+    createExpressMiddleware({
+      router: miniAppRouter,
+      createContext: createMiniContext,
     })
   );
   // development mode uses Vite, production mode uses static files

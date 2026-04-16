@@ -125,6 +125,42 @@ export async function getTeacherStudentData(userId: number) {
   }
 }
 
+// 更新学生成绩数据
+export async function updateStudentScoreData(id: number, data: any) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    // 不允许更新 id 和 userId
+    const { id: _, userId: __, ...updateData } = data;
+    const result = await db.update(studentScoreData).set(updateData).where(eq(studentScoreData.id, id));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to update student score data:", error);
+    throw error;
+  }
+}
+
+// 删除学生成绩数据
+export async function deleteStudentScoreData(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.delete(studentScoreData).where(
+      and(eq(studentScoreData.id, id), eq(studentScoreData.userId, userId))
+    );
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to delete student score data:", error);
+    throw error;
+  }
+}
+
 // 生成分享链接
 export async function createShareLink(data: InsertShareLink) {
   const db = await getDb();

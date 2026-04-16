@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
+import { publicProcedure, router, protectedProcedure, miniRouter, miniProcedure } from "./_core/trpc";
 import { generateTrainingAdvice } from "./douban";
 import { lessonPlanRouter } from "./lessonPlan";
 import { z } from "zod";
@@ -300,3 +300,168 @@ export const appRouter = router({
 });
 
 export type AppRouter = typeof appRouter;
+
+/**
+ * 小程序专用成绩管理 router
+ * 使用 miniProcedure（从 Authorization header 读取 token 认证）
+ */
+export const miniAppRouter = miniRouter({
+  // 获取学生列表
+  getStudents: miniProcedure.query(async ({ ctx }) => {
+    try {
+      const data = await getTeacherStudentData(ctx.user.id);
+      return { success: true, data };
+    } catch (error) {
+      console.error("[Mini] Get students failed", error);
+      return { success: false, data: [] };
+    }
+  }),
+
+  // 保存/更新学生成绩
+  saveStudent: miniProcedure
+    .input(
+      z.object({
+        id: z.number().optional(), // 有 id 则更新，无 id 则新增
+        name: z.string(),
+        grade: z.string().optional(),
+        class: z.string().optional(),
+        school: z.string().optional(),
+        gender: z.enum(["男", "女"]),
+        longrun: z.number().optional(),
+        swim: z.number().optional(),
+        long100: z.number().optional(),
+        longContrib: z.string().optional(),
+        football: z.number().optional(),
+        basketball: z.number().optional(),
+        volleyball: z.number().optional(),
+        ballContrib: z.string().optional(),
+        run50: z.number().optional(),
+        situp: z.number().optional(),
+        ball: z.number().optional(),
+        rope: z.number().optional(),
+        pullup: z.number().optional(),
+        jump: z.number().optional(),
+        selectContrib: z.string().optional(),
+        selectedProjects: z.string().optional(),
+        total40: z.string().optional(),
+        status: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        if (input.id) {
+          // 更新已有记录
+          const { updateStudentScoreData } = await import("./db");
+          await updateStudentScoreData(input.id, { userId: ctx.user.id, ...input });
+          return { success: true, id: input.id };
+        } else {
+          // 新增记录
+          const result = await saveStudentScoreData({ userId: ctx.user.id, ...input });
+          return { success: true };
+        }
+      } catch (error) {
+        console.error("[Mini] Save student failed", error);
+        return { success: false, error: "Failed to save student data" };
+      }
+    }),
+
+  // 删除学生记录
+  deleteStudent: miniProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const { deleteStudentScoreData } = await import("./db");
+        await deleteStudentScoreData(input.id, ctx.user.id);
+        return { success: true };
+      } catch (error) {
+        console.error("[Mini] Delete student failed", error);
+        return { success: false, error: "Failed to delete student" };
+      }
+    }),
+
+  // 生成分享链接
+  createShareLink: miniProcedure
+    .input(
+      z.object({
+        title: z.string(),
+        description: z.string().optional(),
+        studentIds: z.array(z.number()),
+        studentData: z.string().optional(),
+        expiresAt: z.string().optional(), // ISO date string，小程序端传字符串
+        filterType: z.enum(["all", "grade", "class"]).default("all"),
+        filterValue: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const shareCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+        const expiresAt = input.expiresAt ? new Date(input.expiresAt) : undefined;
+        
+        const result = await createShareLink({
+          userId: ctx.user.id,
+          shareCode,
+          title: input.title,
+          description: input.description,
+          studentIds: JSON.stringify(input.studentIds),
+          studentData: input.studentData,
+          filterType: input.filterType,
+          filterValue: input.filterValue,
+          expiresAt,
+          isActive: 1,
+        });
+        
+        return { success: true, shareCode, data: result };
+      } catch (error) {
+        console.error("[Mini] Create share link failed", error);
+        return { success: false, error: "Failed to create share link" };
+      }
+    }),
+
+  // 获取教师的所有分享链接
+  getShareLinks: miniProcedure.query(async ({ ctx }) => {
+    try {
+      const data = await getTeacherShareLinks(ctx.user.id);
+      return { success: true, data };
+    } catch (error) {
+      console.error("[Mini] Get share links failed", error);
+      return { success: false, data: [] };
+    }
+  }),
+
+  // AI 生成训练建议（照搬 Web ai.generateAdvice）
+  generateAdvice: miniProcedure
+    .input(
+      z.object({
+        name: z.string(),
+        gender: z.string(),
+        total40: z.number(),
+        longContrib: z.number().optional(),
+        ballContrib: z.number().optional(),
+        selectContrib: z.number().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const advice = await generateTrainingAdvice(input);
+        return { success: true, advice };
+      } catch (error) {
+        console.error("[Mini] AI advice generation failed", error);
+        return {
+          success: false,
+          advice: "AI 建议生成失败，请稍后再试。",
+        };
+      }
+    }),
+
+  // 获取教师信息
+  me: miniProcedure.query(async ({ ctx }) => {
+    return {
+      id: ctx.user.id,
+      name: ctx.user.name,
+      openId: ctx.user.openId,
+      role: ctx.user.role,
+    };
+  }),
+});
+
+export type MiniAppRouter = typeof miniAppRouter;
