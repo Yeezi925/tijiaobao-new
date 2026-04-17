@@ -5,6 +5,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerWechatMiniRoutes } from "./wechat";
+import { registerGeneratePlanRoute } from "./generatePlan";
 import { appRouter } from "../routers";
 import { miniAppRouter } from "../routers";
 import { createContext, createMiniContext } from "./context";
@@ -39,6 +40,8 @@ async function startServer() {
   registerOAuthRoutes(app);
   // 微信小程序登录
   registerWechatMiniRoutes(app);
+  // 教案生成接口（小程序直调）
+  registerGeneratePlanRoute(app);
   // tRPC API (Web - Cookie auth)
   app.use(
     "/api/trpc",
