@@ -13,13 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, BarChart3, Sparkles, Download, Trash2, Copy } from "lucide-react";
+import { Upload, BarChart3, Sparkles, Download, Trash2, Copy, FileText } from "lucide-react";
 import { StudentRecord } from "@/lib/scoring";
 import { parseExcelFile, exportToExcel } from "@/lib/excel";
 import { performAnalysis, getUniqueGrades, getUniqueClasses } from "@/lib/analysis";
 import { toast } from "sonner";
 import AIAdvice from "./AIAdvice";
 import LessonPlanGenerator from "./LessonPlanGenerator";
+import DocumentGenerator from "./DocumentGenerator";
 import { BookOpen } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
@@ -304,7 +305,7 @@ export default function Home() {
       {/* 主内容区 */}
       <main className="container py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-6">
+          <TabsList className="grid w-full grid-cols-7 mb-6">
             <TabsTrigger value="query" className="flex items-center gap-2">
               <Upload className="w-4 h-4" />
               <span className="hidden sm:inline">导入/查询</span>
@@ -320,6 +321,10 @@ export default function Home() {
             <TabsTrigger value="lesson" className="flex items-center gap-2">
               <BookOpen className="w-4 h-4" />
               <span className="hidden sm:inline">教案</span>
+            </TabsTrigger>
+            <TabsTrigger value="document" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">文档</span>
             </TabsTrigger>
             <TabsTrigger value="manage" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
@@ -687,6 +692,11 @@ export default function Home() {
           {/* 教案生成标签页 */}
           <TabsContent value="lesson" className="space-y-4">
             <LessonPlanGenerator />
+          </TabsContent>
+
+          {/* 文档生成标签页 */}
+          <TabsContent value="document" className="space-y-4">
+            <DocumentGenerator />
           </TabsContent>
 
           <TabsContent value="manage" className="space-y-4">
