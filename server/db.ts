@@ -109,6 +109,27 @@ export async function saveStudentScoreData(data: InsertStudentScoreData) {
   }
 }
 
+// 批量保存学生成绩数据（先清空该教师的旧数据，再批量插入）
+export async function batchSaveStudentScoreData(userId: number, records: InsertStudentScoreData[]) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    // 先删除该教师的全部旧数据
+    await db.delete(studentScoreData).where(eq(studentScoreData.userId, userId));
+    // 批量插入新数据（每条带 userId）
+    if (records.length > 0) {
+      await db.insert(studentScoreData).values(records);
+    }
+    return { success: true, count: records.length };
+  } catch (error) {
+    console.error("[Database] Failed to batch save student score data:", error);
+    throw error;
+  }
+}
+
 // 获取教师的所有学生数据
 export async function getTeacherStudentData(userId: number) {
   const db = await getDb();
@@ -421,6 +442,166 @@ export async function getParentConsultations(parentId: number, teacherId: number
     return result;
   } catch (error) {
     console.error("[Database] Failed to get consultations:", error);
+    throw error;
+  }
+}
+
+
+// ===== 家长绑定相关函数 =====
+
+import { parentBindings, InsertParentBinding } from "../drizzle/schema";
+
+// 创建家长绑定关系
+export async function createParentBinding(data: InsertParentBinding) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.insert(parentBindings).values(data);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to create parent binding:", error);
+    throw error;
+  }
+}
+
+// 批量创建家长绑定关系
+export async function batchCreateParentBindings(records: InsertParentBinding[]) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    if (records.length > 0) {
+      await db.insert(parentBindings).values(records);
+    }
+    return { success: true, count: records.length };
+  } catch (error) {
+    console.error("[Database] Failed to batch create parent bindings:", error);
+    throw error;
+  }
+}
+
+// 获取家长的所有绑定关系
+export async function getParentBindings(parentId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const results = await db.select().from(parentBindings).where(eq(parentBindings.parentId, parentId));
+    return results;
+  } catch (error) {
+    console.error("[Database] Failed to get parent bindings:", error);
+    throw error;
+  }
+}
+
+// 获取家长绑定的学生成绩数据（核心查询）
+export async function getParentStudentScores(parentId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    // 1. 获取家长的所有绑定
+    const bindings = await getParentBindings(parentId);
+    if (bindings.length === 0) {
+      return [];
+    }
+
+    // 2. 获取绑定的学生 ID 列表
+    const studentIds = bindings.map(b => b.studentId);
+
+    // 3. 查询这些学生的最新成绩数据
+    const results = await db.select().from(studentScoreData);
+    const filtered = results.filter(s => s.id && studentIds.includes(s.id));
+
+    return filtered;
+  } catch (error) {
+    console.error("[Database] Failed to get parent student scores:", error);
+    throw error;
+  }
+}
+
+// 删除家长绑定（解绑）
+export async function deleteParentBinding(parentId: number, studentId: number) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.delete(parentBindings).where(
+      and(eq(parentBindings.parentId, parentId), eq(parentBindings.studentId, studentId))
+    );
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to delete parent binding:", error);
+    throw error;
+  }
+}
+
+// 根据分享码获取教师对应的所有学生列表（只返回 id, name, grade, class，不含成绩详情）
+export async function getShareCodeStudents(shareCode: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const shareLink = await getShareLinkByCode(shareCode);
+    if (!shareLink || shareLink.isActive === 0) {
+      return null;
+    }
+
+    // 检查是否过期
+    if (shareLink.expiresAt && new Date(shareLink.expiresAt) < new Date()) {
+      return null;
+    }
+
+    // 获取该教师的学生数据
+    const students = await db.select().from(studentScoreData).where(
+      eq(studentScoreData.userId, shareLink.userId)
+    );
+
+    // 只返回基本信息（姓名、年级、班级、id），不含成绩
+    return {
+      teacherId: shareLink.userId,
+      teacherName: shareLink.title,
+      students: students.map(s => ({
+        id: s.id,
+        name: s.name,
+        grade: s.grade,
+        class: s.class,
+        gender: s.gender,
+      })),
+    };
+  } catch (error) {
+    console.error("[Database] Failed to get share code students:", error);
+    throw error;
+  }
+}
+
+// 检查家长是否已绑定某个学生
+export async function checkParentBindingExists(parentId: number, studentId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const results = await db.select().from(parentBindings).where(
+      and(eq(parentBindings.parentId, parentId), eq(parentBindings.studentId, studentId))
+    );
+    return results.length > 0;
+  } catch (error) {
+    console.error("[Database] Failed to check parent binding:", error);
     throw error;
   }
 }

@@ -5,9 +5,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerWechatMiniRoutes } from "./wechat";
-import { registerGeneratePlanRoute } from "./generatePlan";
-import { appRouter } from "../routers";
-import { miniAppRouter } from "../routers";
+import { appRouter, miniAppRouter } from "../routers";
 import { createContext, createMiniContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
@@ -33,15 +31,25 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  // OAuth callback under /api/oauth/callback
+
+  // OAuth callback
   registerOAuthRoutes(app);
+
   // 微信小程序登录
   registerWechatMiniRoutes(app);
-  // 教案生成接口（小程序直调）
-  registerGeneratePlanRoute(app);
+
+  // AI 路由 — 动态 import 避免被 esbuild 提升到 startServer 之外
+  const { registerPlanRoute } = await import("./generatePlan");
+  const { registerAdviceRoute } = await import("./generateAdvice");
+  const { registerDocumentRoute } = await import("./generateDocument");
+  registerPlanRoute(app);
+  registerAdviceRoute(app);
+  registerDocumentRoute(app);
+
   // tRPC API (Web - Cookie auth)
   app.use(
     "/api/trpc",
@@ -50,7 +58,8 @@ async function startServer() {
       createContext,
     })
   );
-  // tRPC API (小程序 - Authorization header auth)
+
+  // tRPC API (小程序 - Authorization header token auth)
   app.use(
     "/api/mini/trpc",
     createExpressMiddleware({
@@ -58,6 +67,7 @@ async function startServer() {
       createContext: createMiniContext,
     })
   );
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

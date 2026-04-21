@@ -88,6 +88,7 @@ export function registerWechatMiniRoutes(app: Express) {
           id: user.id,
           name: user.name,
           openId: prefixedOpenId,
+          role: user.role,
         },
       });
     } catch (error: any) {

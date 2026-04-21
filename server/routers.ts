@@ -5,7 +5,7 @@ import { publicProcedure, router, protectedProcedure, miniRouter, miniProcedure 
 import { generateTrainingAdvice } from "./douban";
 import { lessonPlanRouter } from "./lessonPlan";
 import { z } from "zod";
-import { saveStudentScoreData, getTeacherStudentData, createShareLink, getShareLinkByCode, getSharedStudentData, getTeacherShareLinks } from "./db";
+import { saveStudentScoreData, getTeacherStudentData, createShareLink, getShareLinkByCode, getSharedStudentData, getTeacherShareLinks, batchSaveStudentScoreData, getShareCodeStudents, getParentBindings, createParentBinding, batchCreateParentBindings, getParentStudentScores, deleteParentBinding, checkParentBindingExists } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -365,6 +365,76 @@ export const miniAppRouter = miniRouter({
       }
     }),
 
+  // 批量保存学生成绩（先清空旧数据，再批量插入）
+  batchSaveStudents: miniProcedure
+    .input(
+      z.object({
+        students: z.array(
+          z.object({
+            id: z.number().optional(),
+            name: z.string(),
+            grade: z.string().optional(),
+            class: z.string().optional(),
+            school: z.string().optional(),
+            gender: z.enum(["男", "女"]),
+            longrun: z.number().optional(),
+            swim: z.number().optional(),
+            long100: z.number().optional(),
+            longContrib: z.string().optional(),
+            football: z.number().optional(),
+            basketball: z.number().optional(),
+            volleyball: z.number().optional(),
+            ballContrib: z.string().optional(),
+            run50: z.number().optional(),
+            situp: z.number().optional(),
+            ball: z.number().optional(),
+            rope: z.number().optional(),
+            pullup: z.number().optional(),
+            jump: z.number().optional(),
+            selectContrib: z.string().optional(),
+            selectedProjects: z.string().optional(),
+            total40: z.string().optional(),
+            status: z.string().optional(),
+          })
+        ),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const records = input.students.map(s => ({
+          userId: ctx.user.id,
+          name: s.name,
+          grade: s.grade,
+          class: s.class,
+          school: s.school,
+          gender: s.gender,
+          longrun: s.longrun,
+          swim: s.swim,
+          long100: s.long100,
+          longContrib: s.longContrib,
+          football: s.football,
+          basketball: s.basketball,
+          volleyball: s.volleyball,
+          ballContrib: s.ballContrib,
+          run50: s.run50,
+          situp: s.situp,
+          ball: s.ball,
+          rope: s.rope,
+          pullup: s.pullup,
+          jump: s.jump,
+          selectContrib: s.selectContrib,
+          selectedProjects: s.selectedProjects,
+          total40: s.total40,
+          status: s.status,
+        }));
+        const result = await batchSaveStudentScoreData(ctx.user.id, records);
+        return { success: true, count: result.count };
+      } catch (error) {
+        console.error("[Mini] Batch save students failed", error);
+        return { success: false, error: "Failed to batch save student data" };
+      }
+    }),
+
   // 删除学生记录
   deleteStudent: miniProcedure
     .input(z.object({ id: z.number() }))
@@ -453,7 +523,7 @@ export const miniAppRouter = miniRouter({
       }
     }),
 
-  // 获取教师信息
+  // 获取当前用户信息（包含 role 判断）
   me: miniProcedure.query(async ({ ctx }) => {
     return {
       id: ctx.user.id,
@@ -462,6 +532,118 @@ export const miniAppRouter = miniRouter({
       role: ctx.user.role,
     };
   }),
+
+  // ===== 家长端路由 =====
+
+  // 家长：通过分享码查看可选学生列表（只返回姓名+班级，不含成绩）
+  parentGetStudentsByShareCode: miniProcedure
+    .input(z.object({ shareCode: z.string() }))
+    .mutation(async ({ input }) => {
+      try {
+        const result = await getShareCodeStudents(input.shareCode);
+        if (!result) {
+          return { success: false, error: "分享码无效或已过期" };
+        }
+        return { success: true, data: result };
+      } catch (error) {
+        console.error("[Mini] parentGetStudentsByShareCode failed:", error);
+        return { success: false, error: "查询失败" };
+      }
+    }),
+
+  // 家长：绑定学生（传入分享码 + 选中的学生ID列表）
+  parentBindStudents: miniProcedure
+    .input(z.object({
+      shareCode: z.string(),
+      studentIds: z.array(z.number()),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        // 先验证分享码
+        const shareInfo = await getShareCodeStudents(input.shareCode);
+        if (!shareInfo) {
+          return { success: false, error: "分享码无效或已过期" };
+        }
+
+        // 验证传入的 studentIds 都在该分享码的学生列表中
+        const validIds = new Set(shareInfo.students.map(s => s.id));
+        const invalidIds = input.studentIds.filter(id => !validIds.has(id));
+        if (invalidIds.length > 0) {
+          return { success: false, error: "部分学生ID无效" };
+        }
+
+        // 过滤掉已绑定的
+        const newBindings = [];
+        for (const studentId of input.studentIds) {
+          const exists = await checkParentBindingExists(ctx.user.id, studentId);
+          if (!exists) {
+            newBindings.push({
+              parentId: ctx.user.id,
+              studentId,
+              teacherId: shareInfo.teacherId,
+              shareCode: input.shareCode,
+            });
+          }
+        }
+
+        // 批量创建绑定
+        if (newBindings.length > 0) {
+          await batchCreateParentBindings(newBindings);
+        }
+
+        // 更新用户角色为 parent（如果还不是的话）
+        if (ctx.user.role !== "parent") {
+          const { upsertUser } = await import("./db");
+          await upsertUser({
+            openId: ctx.user.openId,
+            role: "parent",
+            lastSignedIn: new Date(),
+          });
+        }
+
+        return { success: true, count: newBindings.length, total: input.studentIds.length };
+      } catch (error) {
+        console.error("[Mini] parentBindStudents failed:", error);
+        return { success: false, error: "绑定失败" };
+      }
+    }),
+
+  // 家长：获取已绑定的学生列表（含完整成绩数据）
+  parentGetMyStudents: miniProcedure
+    .query(async ({ ctx }) => {
+      try {
+        const students = await getParentStudentScores(ctx.user.id);
+        return { success: true, data: students };
+      } catch (error) {
+        console.error("[Mini] parentGetMyStudents failed:", error);
+        return { success: false, data: [] };
+      }
+    }),
+
+  // 家长：解绑某个学生
+  parentUnbindStudent: miniProcedure
+    .input(z.object({ studentId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        await deleteParentBinding(ctx.user.id, input.studentId);
+        return { success: true };
+      } catch (error) {
+        console.error("[Mini] parentUnbindStudent failed:", error);
+        return { success: false, error: "解绑失败" };
+      }
+    }),
+
+  // 家长：添加更多孩子（通过新的分享码继续绑定）
+  parentGetBindings: miniProcedure
+    .query(async ({ ctx }) => {
+      try {
+        const bindings = await getParentBindings(ctx.user.id);
+        return { success: true, data: bindings };
+      } catch (error) {
+        console.error("[Mini] parentGetBindings failed:", error);
+        return { success: false, data: [] };
+      }
+    }),
 });
 
 export type MiniAppRouter = typeof miniAppRouter;

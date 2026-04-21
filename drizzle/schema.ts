@@ -16,7 +16,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "parent"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -199,3 +199,16 @@ export const parentConsultations = mysqlTable("parent_consultations", {
 
 export type ParentConsultation = typeof parentConsultations.$inferSelect;
 export type InsertParentConsultation = typeof parentConsultations.$inferInsert;
+
+// 家长绑定表 - 家长与学生的绑定关系
+export const parentBindings = mysqlTable("parent_bindings", {
+  id: int("id").autoincrement().primaryKey(),
+  parentId: int("parentId").notNull(), // 家长 users.id
+  studentId: int("studentId").notNull(), // student_score_data.id
+  teacherId: int("teacherId").notNull(), // 教师 users.id
+  shareCode: varchar("shareCode", { length: 50 }), // 通过哪个分享码绑定的
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ParentBinding = typeof parentBindings.$inferSelect;
+export type InsertParentBinding = typeof parentBindings.$inferInsert;
