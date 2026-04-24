@@ -26,9 +26,26 @@ export const appRouter = router({
         z.object({
           name: z.string(),
           gender: z.string(),
+          grade: z.string().optional(),
+          class: z.string().optional(),
           total40: z.number(),
+          // 长跑/游泳
+          longProject: z.string().optional(),
+          longRaw: z.number().optional(),
           longContrib: z.number().optional(),
+          // 球类
+          ballProject: z.string().optional(),
+          ballRaw: z.number().optional(),
           ballContrib: z.number().optional(),
+          // 选考1
+          selectProject1: z.string().optional(),
+          selectRaw1: z.number().optional(),
+          selectContrib1: z.string().optional(),
+          // 选考2
+          selectProject2: z.string().optional(),
+          selectRaw2: z.number().optional(),
+          selectContrib2: z.string().optional(),
+          // 总贡献分（兼容旧参数）
           selectContrib: z.number().optional(),
         })
       )
@@ -504,9 +521,26 @@ export const miniAppRouter = miniRouter({
       z.object({
         name: z.string(),
         gender: z.string(),
+        grade: z.string().optional(),
+        class: z.string().optional(),
         total40: z.number(),
+        // 长跑/游泳
+        longProject: z.string().optional(),
+        longRaw: z.number().optional(),
         longContrib: z.number().optional(),
+        // 球类
+        ballProject: z.string().optional(),
+        ballRaw: z.number().optional(),
         ballContrib: z.number().optional(),
+        // 选考1
+        selectProject1: z.string().optional(),
+        selectRaw1: z.number().optional(),
+        selectContrib1: z.string().optional(),
+        // 选考2
+        selectProject2: z.string().optional(),
+        selectRaw2: z.number().optional(),
+        selectContrib2: z.string().optional(),
+        // 总贡献分（兼容旧参数）
         selectContrib: z.number().optional(),
       })
     )

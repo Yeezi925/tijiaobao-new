@@ -167,38 +167,30 @@ export default function LessonPlanGenerator() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-      {/* 顶部导航 */}
-      <header className="bg-white shadow-sm border-b border-border sticky top-0 z-50">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                AI 教案生成器
-              </h1>
-              <p className="text-sm text-muted-foreground">智能生成教学计划、总结和反思</p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="p-6 space-y-6">
+      {/* 页面标题 */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">教案生成</h1>
+        <p className="text-muted-foreground mt-1">
+          智能生成教学计划、总结和反思
+        </p>
+      </div>
 
-      {/* 主内容区 */}
-      <main className="container py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="setup" className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">设置</span>
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4" />
-              <span className="hidden sm:inline">聊天</span>
-            </TabsTrigger>
-            <TabsTrigger value="result" className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">结果</span>
-            </TabsTrigger>
-          </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="setup" className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4" />
+            <span className="hidden sm:inline">设置</span>
+          </TabsTrigger>
+          <TabsTrigger value="chat" className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            <span className="hidden sm:inline">聊天</span>
+          </TabsTrigger>
+          <TabsTrigger value="result" className="flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">结果</span>
+          </TabsTrigger>
+        </TabsList>
 
           {/* 设置标签页 */}
           <TabsContent value="setup" className="space-y-4">
@@ -476,7 +468,6 @@ export default function LessonPlanGenerator() {
             )}
           </TabsContent>
         </Tabs>
-      </main>
     </div>
   );
 }

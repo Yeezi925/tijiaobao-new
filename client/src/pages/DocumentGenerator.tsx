@@ -187,11 +187,17 @@ export default function DocumentGenerator() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
+      {/* 页面标题 */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">文档生成</h1>
+        <p className="text-muted-foreground mt-1">
+          选择文档类型，填写基本信息，AI 自动生成专业文档
+        </p>
+      </div>
+
       {/* 文档类型选择 */}
       <Card className="p-6 bg-white">
-        <h2 className="text-2xl font-semibold mb-2">AI 文档生成</h2>
-        <p className="text-sm text-muted-foreground mb-6">选择文档类型，填写基本信息，AI 自动生成专业文档</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {DOCUMENT_TYPES.map((type) => (
             <button

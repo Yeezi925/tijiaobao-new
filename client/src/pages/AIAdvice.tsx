@@ -42,12 +42,49 @@ export default function AIAdvice({ students }: { students: StudentRecord[] }) {
       return sum + (contrib || 0);
     }, 0) || 0;
 
+    // 获取详细成绩数据
+    const longProject = selectedStudent.swim ? "游泳" : (selectedStudent.longrun ? (selectedStudent.gender === "男" ? "1000米跑" : "800米跑") : null);
+    const ballProject = selectedStudent.football ? "足球运球" : (selectedStudent.basketball ? "篮球运球" : (selectedStudent.volleyball ? "排球40秒对墙垫球" : null));
+
     generateAdviceMutation.mutate({
       name: selectedStudent.name,
       gender: selectedStudent.gender,
+      grade: selectedStudent.grade || undefined,
+      class: selectedStudent.class || undefined,
       total40: typeof selectedStudent.total40 === "string" ? parseFloat(selectedStudent.total40) : selectedStudent.total40 || 0,
+      // 长跑/游泳
+      longProject: longProject,
+      longRaw: selectedStudent.swim || selectedStudent.longrun,
       longContrib: typeof selectedStudent.longContrib === "string" ? parseFloat(selectedStudent.longContrib) : selectedStudent.longContrib,
+      // 球类
+      ballProject: ballProject,
+      ballRaw: selectedStudent.football || selectedStudent.basketball || selectedStudent.volleyball,
       ballContrib: typeof selectedStudent.ballContrib === "string" ? parseFloat(selectedStudent.ballContrib) : selectedStudent.ballContrib,
+      // 选考项目
+      selectProject1: selectedStudent.selectedProjects?.[0]?.name,
+      selectRaw1: (() => {
+        const proj = selectedStudent.selectedProjects?.[0]?.name;
+        if (proj?.includes("50米")) return selectedStudent.run50;
+        if (proj?.includes("仰卧")) return selectedStudent.situp;
+        if (proj?.includes("实心球")) return selectedStudent.ball;
+        if (proj?.includes("跳绳")) return selectedStudent.rope;
+        if (proj?.includes("引体")) return selectedStudent.pullup;
+        if (proj?.includes("立定跳远")) return selectedStudent.jump;
+        return null;
+      })(),
+      selectContrib1: selectedStudent.selectedProjects?.[0]?.contrib,
+      selectProject2: selectedStudent.selectedProjects?.[1]?.name,
+      selectRaw2: (() => {
+        const proj = selectedStudent.selectedProjects?.[1]?.name;
+        if (proj?.includes("50米")) return selectedStudent.run50;
+        if (proj?.includes("仰卧")) return selectedStudent.situp;
+        if (proj?.includes("实心球")) return selectedStudent.ball;
+        if (proj?.includes("跳绳")) return selectedStudent.rope;
+        if (proj?.includes("引体")) return selectedStudent.pullup;
+        if (proj?.includes("立定跳远")) return selectedStudent.jump;
+        return null;
+      })(),
+      selectContrib2: selectedStudent.selectedProjects?.[1]?.contrib,
       selectContrib: selectTotal,
     });
   };

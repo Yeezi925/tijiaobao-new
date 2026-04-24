@@ -14,7 +14,7 @@ export default function Login() {
     
     // 根据角色跳转到不同的页面
     if (role === "teacher") {
-      window.location.href = "/";
+      window.location.href = "/workspace";
     } else {
       window.location.href = "/parent";
     }
