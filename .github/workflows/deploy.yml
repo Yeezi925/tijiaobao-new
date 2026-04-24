@@ -1,0 +1,50 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: corepack enable pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build project
+        run: pnpm run build
+
+      - name: Deploy to server
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          USERNAME: ${{ secrets.SERVER_USERNAME }}
+          KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          # 创建部署脚本
+          mkdir -p ~/.ssh
+          echo "$KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          # 上传构建结果
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -r dist/* $USERNAME@$HOST:/var/www/tijiaobao-new/dist/public/
+          
+          # 上传服务端代码
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -r server/* $USERNAME@$HOST:/var/www/tijiaobao-new/server/
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -r drizzle/* $USERNAME@$HOST:/var/www/tijiaobao-new/drizzle/
+          
+          # 重启 PM2
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $USERNAME@$HOST "sudo env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.nvm/versions/node/v22.22.2/bin pm2 restart all"
